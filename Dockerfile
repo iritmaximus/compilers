@@ -9,7 +9,7 @@ RUN cargo build --release
 CMD ["cargo", "run", "--release"]
 
 
-FROM debian:bullseye-slim AS runner
+FROM debian:12-slim AS runner
 # RUN apt-get update && apt-get install -y extra-runtime-dependencies && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
