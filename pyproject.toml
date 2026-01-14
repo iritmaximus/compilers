@@ -4,7 +4,7 @@ version = "0.0.0"
 description = ""
 authors = []
 readme = "README.md"
-packages = [{include = "compiler", from = "src", format = ["sdist"]}]
+packages = [{include = "compiler", from = "python-src", format = ["sdist"]}]
 
 [tool.poetry.dependencies]
 python = "^3.12"
