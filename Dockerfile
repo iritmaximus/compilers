@@ -3,12 +3,17 @@ FROM alpine:3.23 AS builder
 RUN apk update
 RUN apk add --no-cache build-base git
 RUN apk add --no-cache cmake cmake-doc cmake-extras pkgconf
+RUN apk add --no-cache clang
+
+ENV CC=/usr/bin/clang
+ENV CXX=/usr/bin/clang
 
 WORKDIR /usr/src/compiler
 
 COPY compiler .
 
 RUN rm -rf build
+
 
 RUN mkdir build/ && cd build && cmake .. && make -j8
 

@@ -13,10 +13,25 @@ def call_compiler(source_code: str) -> bytes:
     # Raise an exception on compilation error.
     # *** TODO ***
     print("Compiling:", "./compilers_compiler", source_code)
-    response = subprocess.run(["./compilers_compiler", source_code], check=True, capture_output=True).stdout
+    import uuid
+    
+    # Give the compiler a file to write the result to
+    filename = "compile-result-" + str(uuid.uuid4())
+    response = subprocess.run(["./compilers_compiler", source_code, filename], check=True, capture_output=True).stdout
     print(response)
 
-    return response
+    try:
+        # Read the updated file and fetch compiler result
+        with open(filename,"rb") as file_content:
+            content = file_content.read()
+            print(content)
+    
+    except FileNotFoundError as e:
+        print("File not found", filename, e)
+        content = b""
+
+
+    return content
 
 
 def main() -> int:

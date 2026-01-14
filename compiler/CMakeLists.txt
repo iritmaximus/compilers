@@ -15,4 +15,4 @@ add_executable(compilers_compiler src/main.cpp)
 
 target_include_directories(compilers_compiler       PRIVATE include)
 target_include_directories(compilers_compiler_lib   PRIVATE include)
-target_link_libraries(compilers_compiler compilers_compiler_lib -static)
+target_link_libraries(compilers_compiler compilers_compiler_lib -static-libgcc -static-libstdc++)
