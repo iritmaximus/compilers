@@ -1,3 +1,4 @@
-build
 .test-gadget
-python
+.*_cache
+*.pyc
+__pycache__

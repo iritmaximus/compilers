@@ -1,2 +1,4 @@
-.test-gadget
-build
+*.pyc
+__pycache__
+/.mypy_cache
+.test-gadget/
