@@ -1,4 +1,4 @@
-FROM alpine:3.23 AS builder
+FROM rust:slim AS builder
 
 WORKDIR /app
 COPY . .
@@ -9,7 +9,7 @@ RUN cargo build --release
 CMD ["cargo", "run", "--release"]
 
 
-FROM alpine:3.23 AS runner
+FROM debian:bullseye-slim AS runner
 # RUN apt-get update && apt-get install -y extra-runtime-dependencies && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
