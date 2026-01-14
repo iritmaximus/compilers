@@ -5,14 +5,18 @@ import sys
 from socketserver import ForkingTCPServer, StreamRequestHandler
 from traceback import format_exception
 from typing import Any
-
+import subprocess
 
 def call_compiler(source_code: str) -> bytes:
     # *** TODO ***
     # Call your compiler here and return the compiled executable.
     # Raise an exception on compilation error.
     # *** TODO ***
-    raise NotImplementedError("Compiler not implemented")
+    print("Compiling:", "./compilers_compiler", source_code)
+    response = subprocess.run(["./compilers_compiler", source_code], check=True, capture_output=True).stdout
+    print(response)
+
+    return response
 
 
 def main() -> int:
@@ -78,10 +82,13 @@ def run_server(host: str, port: int) -> None:
 
     class Handler(StreamRequestHandler):
         def handle(self) -> None:
+            print("Got a request?")
             result: dict[str, Any] = {}
             try:
                 input_str = self.rfile.read().decode()
+                print("INPUTSTR:", input_str)
                 input = json.loads(input_str)
+                print("JSONINPUT", input)
                 if input["command"] == "compile":
                     source_code = input["code"]
                     executable = call_compiler(source_code)
@@ -91,8 +98,10 @@ def run_server(host: str, port: int) -> None:
                 else:
                     result["error"] = "Unknown command: " + input['command']
             except Exception as e:
+                print("ERROR!!", e)
                 result["error"] = "".join(format_exception(e))
             result_str = json.dumps(result)
+            print(result_str)
             self.request.sendall(str.encode(result_str))
 
     print(f"Starting TCP server at {host}:{port}")
