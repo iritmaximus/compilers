@@ -17,6 +17,7 @@ pub fn tokenizer(code: &str) -> Vec<&str> {
     let tokens: Vec<&str> = re
         .find_iter(code)
         .map(|mat| {
+            // Add line number and location to token
             let token = mat.as_str();
             println!("{token}");
             token
