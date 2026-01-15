@@ -4,8 +4,8 @@ use std::{
     net::{TcpListener, TcpStream},
 };
 
-const PORT: &str = "4000";
-const HOST: &str = "127.0.0.1";
+const PORT: &str = "3000";
+const HOST: &str = "0.0.0.0";
 
 fn main() {
     let address = format!("{}:{}", HOST, PORT);
