@@ -1,4 +1,5 @@
 use base64::prelude::*;
+use std::env;
 use std::{
     io::{BufReader, prelude::*},
     net::{TcpListener, TcpStream},
@@ -10,15 +11,33 @@ const PORT: &str = "3000";
 const HOST: &str = "0.0.0.0";
 
 fn main() {
-    let address = format!("{}:{}", HOST, PORT);
-    let listener = TcpListener::bind(&address).unwrap();
+    let args: Vec<_> = env::args().collect();
+    if args.len() <= 2 {
+        println!("Too few arguments, try either `compile` or `serve`");
+        println!("If using serve, just add something random as 2nd argument :D");
+        return;
+    }
 
-    println!("Starting server at address {}", address);
+    match args[1].as_str() {
+        "compile" => {
+            let executable = compiler::compile(args[2].as_str());
+            println!("Executable: {}", executable);
+        }
+        "serve" => {
+            let address = format!("{}:{}", HOST, PORT);
+            let listener = TcpListener::bind(&address).unwrap();
 
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
+            println!("Starting server at address {}", address);
 
-        handle_connection(stream);
+            for stream in listener.incoming() {
+                let stream = stream.unwrap();
+
+                handle_connection(stream);
+            }
+        }
+        _ => {
+            println!("Incorrect usage!");
+        }
     }
 }
 

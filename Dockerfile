@@ -16,4 +16,4 @@ COPY --from=builder /app/compiler/target/release/compiler .
 
 EXPOSE 3000
 
-CMD ["./compiler"]
+CMD ["./compiler", "serve", "'<placeholder>'"]
