@@ -22,6 +22,8 @@ pub struct TokenLocation {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum TokenType {
+    Whitespace,
+    Comment,
     Identifier,
     IntLiteral,
     Other,
@@ -50,6 +52,27 @@ fn is_whitespace(token: &str) -> bool {
     return WHITESPACE_RE.is_match(token);
 }
 
+fn is_integer_literal(token: &str) -> bool {
+    return token.parse::<u64>().is_ok();
+}
+
+fn is_comment(token: &str) -> bool {
+    return token.starts_with("#") || token.starts_with("//");
+}
+
+fn parse_token_type(token: &str) -> TokenType {
+    if is_whitespace(token) {
+        return TokenType::Whitespace;
+    }
+    if is_integer_literal(token) {
+        return TokenType::IntLiteral;
+    }
+    if is_comment(token) {
+        return TokenType::Comment;
+    }
+    return TokenType::Other;
+}
+
 pub fn tokenizer(code: &str) -> Vec<Token<'_>> {
     println!("Doing regex things for {:?}", code);
 
@@ -74,9 +97,11 @@ pub fn tokenizer(code: &str) -> Vec<Token<'_>> {
         current_pos.column += token.len() as u64;
 
         let token_pos = current_pos;
+        let token_type = parse_token_type(token);
+
         let token_obj = Token {
             location: token_pos,
-            token_type: TokenType::Other,
+            token_type: token_type,
             value: token,
         };
 
@@ -138,17 +163,17 @@ mod tests {
         let result = [
             Token {
                 location: TokenLocation { column: 3, line: 0 },
-                token_type: TokenType::Other,
+                token_type: TokenType::IntLiteral,
                 value: "123",
             },
             Token {
                 location: TokenLocation { column: 4, line: 1 },
-                token_type: TokenType::Other,
+                token_type: TokenType::IntLiteral,
                 value: "3210",
             },
             Token {
                 location: TokenLocation { column: 2, line: 3 },
-                token_type: TokenType::Other,
+                token_type: TokenType::IntLiteral,
                 value: "50",
             },
         ];
