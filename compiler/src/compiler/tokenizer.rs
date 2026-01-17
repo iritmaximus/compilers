@@ -2,16 +2,20 @@ use lazy_static::lazy_static;
 use regex::Regex;
 
 const WHITESPACE_REGEX_STR: &str = r"(\n|\r\n|\r|\\n|\ )";
-const COMMENT_REGEX_STR: &str = r"(((\#|\/\/).*)";
-const SINGLE_CHAR_OPERATOR_STR: &str = r"([+\-\/*%(),;:{}])";
+const COMMENT_REGEX_STR: &str = r"((\#|\/\/).*)";
+const SINGLE_CHAR_OPERATOR_STR: &str = r"([+\-\/*%])";
+const PUNCTUATION_STR: &str = r"([(){},;:])";
 const MULTICHAR_OPERATOR_STR: &str = r"([<>=!]=?)";
 const NUMBER_LITERAL_STR: &str = r"([0-9]+)";
-const IDENTIFIER_STR: &str = r"([a-zA-Z_][a-zA-Z_0-9]*))";
+const IDENTIFIER_STR: &str = r"([a-zA-Z_][a-zA-Z_0-9]*)";
 
 lazy_static! {
     // Damn, regex...
-    static ref TOKEN_RE: Regex = Regex::new(format!(r#"{WHITESPACE_REGEX_STR}|{COMMENT_REGEX_STR}|{SINGLE_CHAR_OPERATOR_STR}|{MULTICHAR_OPERATOR_STR}|{NUMBER_LITERAL_STR}|{IDENTIFIER_STR}"#).as_str()).unwrap();
+    static ref TOKEN_RE: Regex = Regex::new(format!(r#"{WHITESPACE_REGEX_STR}|{COMMENT_REGEX_STR}|{PUNCTUATION_STR}|{SINGLE_CHAR_OPERATOR_STR}|{MULTICHAR_OPERATOR_STR}|{NUMBER_LITERAL_STR}|{IDENTIFIER_STR}"#).as_str()).unwrap();
     static ref WHITESPACE_RE: Regex = Regex::new(format!(r#"{WHITESPACE_REGEX_STR}"#).as_str()).unwrap();
+    static ref OPERATOR_RE: Regex = Regex::new(format!(r#"{SINGLE_CHAR_OPERATOR_STR}|{MULTICHAR_OPERATOR_STR}"#).as_str()).unwrap();
+    static ref PUNCTUATION_RE: Regex = Regex::new(format!(r#"{PUNCTUATION_STR}"#).as_str()).unwrap();
+    static ref IDENTIFIER_RE: Regex = Regex::new(format!(r#"{IDENTIFIER_STR}"#).as_str()).unwrap();
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -20,22 +24,28 @@ pub struct TokenLocation {
     column: u64,
 }
 
+pub struct DebugTokenLocation {}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum TokenType {
     Whitespace,
     Comment,
     Identifier,
     IntLiteral,
+    Operator,
+    Punctuation,
     Other,
 }
 
 #[derive(Debug, Eq)]
 pub struct Token<'a> {
-    location: TokenLocation,
+    location: TokenLocation, // TODO: Add DebugTokenLocation as an option for type
     token_type: TokenType,
     value: &'a str,
 }
 
+// TODO: If Token.location is typeof DebugTokenLocation => return true;
+// Helps with testing
 impl<'a> PartialEq for Token<'a> {
     fn eq(&self, other: &Token) -> bool {
         if self.location == other.location
@@ -60,6 +70,26 @@ fn is_comment(token: &str) -> bool {
     return token.starts_with("#") || token.starts_with("//");
 }
 
+// Whitespace,
+// Comment,
+// Identifier,
+// IntLiteral,
+// Operator,
+// Punctuation,
+// Other,
+
+fn is_operator(token: &str) -> bool {
+    return OPERATOR_RE.is_match(token);
+}
+
+fn is_punctuation(token: &str) -> bool {
+    return PUNCTUATION_RE.is_match(token);
+}
+
+fn is_identifier(token: &str) -> bool {
+    return IDENTIFIER_RE.is_match(token);
+}
+
 fn parse_token_type(token: &str) -> TokenType {
     if is_whitespace(token) {
         return TokenType::Whitespace;
@@ -69,6 +99,15 @@ fn parse_token_type(token: &str) -> TokenType {
     }
     if is_comment(token) {
         return TokenType::Comment;
+    }
+    if is_operator(token) {
+        return TokenType::Operator;
+    }
+    if is_punctuation(token) {
+        return TokenType::Punctuation;
+    }
+    if is_identifier(token) {
+        return TokenType::Identifier;
     }
     return TokenType::Other;
 }
@@ -178,6 +217,95 @@ mod tests {
             },
         ];
 
+        assert_eq!(tokenizer(code), result);
+    }
+
+    #[test]
+    fn operator_token_matching() {
+        let code = "1 >= 0 +2";
+        let result = vec![
+            Token {
+                location: TokenLocation { column: 1, line: 0 },
+                token_type: TokenType::IntLiteral,
+                value: "1",
+            },
+            Token {
+                location: TokenLocation { column: 4, line: 0 },
+                token_type: TokenType::Operator,
+                value: ">=",
+            },
+            Token {
+                location: TokenLocation { column: 6, line: 0 },
+                token_type: TokenType::IntLiteral,
+                value: "0",
+            },
+            Token {
+                location: TokenLocation { column: 8, line: 0 },
+                token_type: TokenType::Operator,
+                value: "+",
+            },
+            Token {
+                location: TokenLocation { column: 9, line: 0 },
+                token_type: TokenType::IntLiteral,
+                value: "2",
+            },
+        ];
+        assert_eq!(tokenizer(code), result);
+    }
+
+    #[test]
+    fn punctuation_token_matching() {
+        let code = "{1+1}: 0()";
+        let result = vec![
+            Token {
+                location: TokenLocation { column: 1, line: 0 },
+                token_type: TokenType::Punctuation,
+                value: "{",
+            },
+            Token {
+                location: TokenLocation { column: 2, line: 0 },
+                token_type: TokenType::IntLiteral,
+                value: "1",
+            },
+            Token {
+                location: TokenLocation { column: 3, line: 0 },
+                token_type: TokenType::Operator,
+                value: "+",
+            },
+            Token {
+                location: TokenLocation { column: 4, line: 0 },
+                token_type: TokenType::IntLiteral,
+                value: "1",
+            },
+            Token {
+                location: TokenLocation { column: 5, line: 0 },
+                token_type: TokenType::Punctuation,
+                value: "}",
+            },
+            Token {
+                location: TokenLocation { column: 6, line: 0 },
+                token_type: TokenType::Punctuation,
+                value: ":",
+            },
+            Token {
+                location: TokenLocation { column: 8, line: 0 },
+                token_type: TokenType::IntLiteral,
+                value: "0",
+            },
+            Token {
+                location: TokenLocation { column: 9, line: 0 },
+                token_type: TokenType::Punctuation,
+                value: "(",
+            },
+            Token {
+                location: TokenLocation {
+                    column: 10,
+                    line: 0,
+                },
+                token_type: TokenType::Punctuation,
+                value: ")",
+            },
+        ];
         assert_eq!(tokenizer(code), result);
     }
 
