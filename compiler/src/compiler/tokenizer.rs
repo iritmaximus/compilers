@@ -9,6 +9,7 @@ const MULTICHAR_OPERATOR_STR: &str = r"([<>=!]=?)";
 const NUMBER_LITERAL_STR: &str = r"([0-9]+)";
 const IDENTIFIER_STR: &str = r"([a-zA-Z_][a-zA-Z_0-9]*)";
 
+// TODO: implement the whole tokenizer without regex
 lazy_static! {
     // Damn, regex...
     static ref TOKEN_RE: Regex = Regex::new(format!(r#"{WHITESPACE_REGEX_STR}|{COMMENT_REGEX_STR}|{PUNCTUATION_STR}|{SINGLE_CHAR_OPERATOR_STR}|{MULTICHAR_OPERATOR_STR}|{NUMBER_LITERAL_STR}|{IDENTIFIER_STR}"#).as_str()).unwrap();
