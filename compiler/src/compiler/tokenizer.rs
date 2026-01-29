@@ -49,12 +49,17 @@ pub struct Token<'a> {
 // Helps with testing
 impl<'a> PartialEq for Token<'a> {
     fn eq(&self, other: &Token) -> bool {
+        // if (self.location == DebugTokenLocation || other.location == DebugTokenLocation) {
+        //     return true;
+        // }
+
         if self.location == other.location
             && self.value == other.value
             && self.token_type == other.token_type
         {
             return true;
         }
+
         return false;
     }
 }

@@ -7,4 +7,25 @@ use crate::compiler::tokenizer::Token;
 * 4. ???
 * 5. Profit
 */
-pub fn parser(tokens: Vec<Token>) {}
+
+enum ExpressionType {
+    IntLiteral,
+    Identifier,
+    BinaryOperator,
+}
+
+// T should be equal to ExpressionType
+struct Expression<T> {
+    expr_type: ExpressionType,
+    value: T,
+}
+
+struct BinaryOperator<'a, T, K> {
+    left: T,
+    right: K,
+    operator: &'a str,
+}
+
+pub fn parser(tokens: Vec<Token>) {
+    return;
+}
