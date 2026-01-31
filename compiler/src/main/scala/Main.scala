@@ -1,7 +1,10 @@
+package compiler
+
 import java.io.{BufferedReader, InputStreamReader, PrintWriter}
 import java.net.{ServerSocket, Socket};
 import java.util.stream.Stream
 
+import compiler.Tokenizer.tokenizer
 
 
 @main def hello(): Unit =
@@ -43,12 +46,3 @@ def run_server(): Unit =
 
 def compile(source: String): String =
   return tokenizer(source).toString()
-
-
-class TokenLocation(column: Int, line: Int)
-class TokenLocationDebug()
-
-class Token(value: String, location: TokenLocation | TokenLocationDebug = TokenLocationDebug())
-
-def tokenizer(source: String): List[Token] =
-  return List(Token("test"))
