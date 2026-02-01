@@ -4,7 +4,7 @@ import java.io.{BufferedReader, InputStreamReader, PrintWriter}
 import java.net.{ServerSocket, Socket};
 import java.util.stream.Stream
 
-import compiler.Tokenizer.tokenizer
+import compiler.Tokenizer._
 
 
 @main def hello(): Unit =
@@ -45,4 +45,4 @@ def run_server(): Unit =
     out.println(response);
 
 def compile(source: String): String =
-  return tokenizer(source).toString()
+  return Tokenizer.tokenize(source).toString()
