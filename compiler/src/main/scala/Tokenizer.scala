@@ -30,7 +30,14 @@ class TokenLocationDebug():
     case _ => false
   }
 
-sealed trait Token(val value: String, val location: TokenLocation | TokenLocationDebug = TokenLocationDebug()):
+// Try to keep this in sync with the above classes
+enum TokenType:
+  case Whitespace, Comment, IntLiteral, Operator, Punctuation, Identifier, Other, Error
+
+// Access TokenType cases without TokenType. prefix: TokenType.Identifier vs Identifier
+import compiler.Tokenizer.TokenType._
+
+class Token(val value: String, val tokenType: TokenType ,val location: TokenLocation | TokenLocationDebug):
   override def toString: String = s"${this.getClass.getName.stripPrefix("compiler.Tokenizer.")}($value, $location)"
   override def equals(other: Any): Boolean = other match {
     case that: Token => {
@@ -42,16 +49,14 @@ sealed trait Token(val value: String, val location: TokenLocation | TokenLocatio
     case _ => false
   }
   def isSkippable() =
-    this match {
-      case that: WhitespaceT => true
-      case that: CommentT => true
+    this.tokenType match {
+      case Whitespace => true
+      case Comment => true
       case _ => false
     }
 
 object Token:
   def tokenFromString(str: String, currentPos: Position): Option[Token] =
-
-
     if Token.isWhitespace(str) then 
       val startWhitespace = Position(currentPos.line, currentPos.column)
       str.foreach(_ match {
@@ -62,7 +67,7 @@ object Token:
 
       val endWhitespace = Position(currentPos.line, currentPos.column)
       val tokenLoc = TokenLocation(startWhitespace, endWhitespace)
-      return Some(WhitespaceT(str, tokenLoc))
+      return Some(Token(str, Whitespace, tokenLoc))
 
     // After whitespace is calculated, move currentPos to the end of the current token
     // i.e. current column + token length
@@ -71,11 +76,11 @@ object Token:
     val end = Position(currentPos.line, currentPos.column)
     val tokenLoc = TokenLocation(start, end)
 
-    if Token.isComment(str) then return Some(CommentT(str, tokenLoc))
-    if Token.isIntLiteral(str) then return Some(IntLiteralT(str, tokenLoc))
-    if Token.isOperator(str) then return Some(OperatorT(str, tokenLoc))
-    if Token.isIdentifier(str) then return Some(IdentifierT(str, tokenLoc))
-    if Token.isPunctuation(str) then return Some(PunctuationT(str, tokenLoc))
+    if Token.isComment(str) then return Some(Token(str, Comment, tokenLoc))
+    if Token.isIntLiteral(str) then return Some(Token(str, IntLiteral, tokenLoc))
+    if Token.isOperator(str) then return Some(Token(str, Operator, tokenLoc))
+    if Token.isIdentifier(str) then return Some(Token(str, Identifier, tokenLoc))
+    if Token.isPunctuation(str) then return Some(Token(str, Punctuation, tokenLoc))
     else return None
 
 
@@ -86,13 +91,6 @@ object Token:
   def isPunctuation(str: String): Boolean = raw"[(),;:{}]".r.matches(str)
   def isIdentifier(str: String): Boolean = raw"[a-zA-Z_][a-zA-Z_0-9]*".r.matches(str)
 
-class WhitespaceT(value: String, location: TokenLocation | TokenLocationDebug) extends Token(value, location)
-class CommentT(value: String, location: TokenLocation | TokenLocationDebug) extends Token(value, location)
-class IntLiteralT(value: String, location: TokenLocation | TokenLocationDebug) extends Token(value, location)
-class OperatorT(value: String, location: TokenLocation | TokenLocationDebug) extends Token(value, location)
-class PunctuationT(value: String, location: TokenLocation | TokenLocationDebug) extends Token(value, location)
-class IdentifierT(value: String, location: TokenLocation | TokenLocationDebug) extends Token(value, location)
-class OtherT(value: String, location: TokenLocation | TokenLocationDebug) extends Token(value, location)
 
 
 object Tokenizer:

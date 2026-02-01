@@ -1,7 +1,8 @@
 // For more information on writing tests, see
 // https://scalameta.org/munit/docs/getting-started.html
 
-import compiler.Tokenizer.*
+import compiler.Tokenizer._
+import compiler.Tokenizer.TokenType._
 import scala.util.{Try, Failure, Success}
 
 
@@ -25,11 +26,11 @@ class TokenizerTestWithoutLocation extends munit.FunSuite {
   test("should work with identifiers") {
     val code = "while true do print_int BigInt"
     val expected = List(
-      IdentifierT("while", L),
-      IdentifierT("true", L),
-      IdentifierT("do", L),
-      IdentifierT("print_int", L),
-      IdentifierT("BigInt", L),
+      Token("while", Identifier, L),
+      Token("true", Identifier, L),
+      Token("do", Identifier, L),
+      Token("print_int", Identifier, L),
+      Token("BigInt", Identifier, L),
     )
     test_tokenizer(code, expected)
   }
@@ -38,11 +39,11 @@ class TokenizerTestWithoutLocation extends munit.FunSuite {
     val code = "41 + 3 == 44"
     val expected =
       List(
-        IntLiteralT("41", L),
-        OperatorT("+", L),
-        IntLiteralT("3", L),
-        OperatorT("==", L),
-        IntLiteralT("44", L)
+        Token("41", IntLiteral, L),
+        Token("+", Operator, L),
+        Token("3", IntLiteral, L),
+        Token("==", Operator, L),
+        Token("44", IntLiteral, L)
       )
     test_tokenizer(code, expected)
   }
@@ -50,7 +51,13 @@ class TokenizerTestWithoutLocation extends munit.FunSuite {
   test("should work with operators and int literals") {
     val code = "1531 + 1241 == 2772"
     val expected =
-      List(IntLiteralT("1531", L), OperatorT("+", L), IntLiteralT("1241", L), OperatorT("==", L), IntLiteralT("2772", L))
+      List(
+        Token("1531", IntLiteral, L), 
+        Token("+", Operator, L),
+        Token("1241", IntLiteral, L),
+        Token("==", Operator, L),
+        Token("2772", IntLiteral, L)
+      )
     test_tokenizer(code, expected)
   }
 
@@ -59,11 +66,11 @@ class TokenizerTestWithoutLocation extends munit.FunSuite {
     val code2 = "4/2==2 // math"
     val code3 = "# this is a whole line comment"
     val expected = List(
-      IntLiteralT("4", L),
-      OperatorT("/", L),
-      IntLiteralT("2", L),
-      OperatorT("==", L),
-      IntLiteralT("2", L),
+      Token("4", IntLiteral, L),
+      Token("/", Operator, L),
+      Token("2", IntLiteral, L),
+      Token("==", Operator, L),
+      Token("2", IntLiteral, L),
     )
     test_tokenizer(code1, expected)
     test_tokenizer(code2, expected)
@@ -80,11 +87,11 @@ class TokenizerTestWithoutLocation extends munit.FunSuite {
   test("should work with function parenthesis") {
     val code = "print_int(n);"
     val expected = List(
-      IdentifierT("print_int", L),
-      PunctuationT("(", L),
-      IdentifierT("n", L),
-      PunctuationT(")", L),
-      PunctuationT(";", L),
+      Token("print_int", Identifier, L),
+      Token("(", Punctuation, L),
+      Token("n", Identifier, L),
+      Token(")", Punctuation, L),
+      Token(";", Punctuation, L),
     )
     test_tokenizer(code, expected)
   }
@@ -92,17 +99,17 @@ class TokenizerTestWithoutLocation extends munit.FunSuite {
   test("should work with functions with types") {
     val code = "test(i: Int,j: Float);"
     val expected = List(
-      IdentifierT("test", L),
-      PunctuationT("(", L),
-      IdentifierT("i", L),
-      PunctuationT(":", L),
-      IdentifierT("Int", L),
-      PunctuationT(",", L),
-      IdentifierT("j", L),
-      PunctuationT(":", L),
-      IdentifierT("Float", L),
-      PunctuationT(")", L),
-      PunctuationT(";", L),
+      Token("test", Identifier, L),
+      Token("(", Punctuation, L),
+      Token("i", Identifier, L),
+      Token(":", Punctuation, L),
+      Token("Int", Identifier, L),
+      Token(",", Punctuation, L),
+      Token("j", Identifier, L),
+      Token(":", Punctuation, L),
+      Token("Float", Identifier, L),
+      Token(")", Punctuation, L),
+      Token(";", Punctuation, L),
     )
     test_tokenizer(code, expected)
   }
@@ -110,18 +117,18 @@ class TokenizerTestWithoutLocation extends munit.FunSuite {
   test("should work with more complicated control flow") {
     val code = "if (i>0) { it(); }"
     val expected = List(
-      IdentifierT("if", L),
-      PunctuationT("(", L),
-      IdentifierT("i", L),
-      OperatorT(">", L),
-      IntLiteralT("0", L),
-      PunctuationT(")", L),
-      PunctuationT("{", L),
-      IdentifierT("it", L),
-      PunctuationT("(", L),
-      PunctuationT(")", L),
-      PunctuationT(";", L),
-      PunctuationT("}", L),
+      Token("if", Identifier, L),
+      Token("(", Punctuation, L),
+      Token("i", Identifier, L),
+      Token(">", Operator, L),
+      Token("0", IntLiteral, L),
+      Token(")", Punctuation, L),
+      Token("{", Punctuation, L),
+      Token("it", Identifier, L),
+      Token("(", Punctuation, L),
+      Token(")", Punctuation, L),
+      Token(";", Punctuation, L),
+      Token("}", Punctuation, L),
     )
     test_tokenizer(code, expected)
   }
@@ -139,7 +146,7 @@ class TokenizerTestWithLocation extends munit.FunSuite {
   test("should fail with incorrect positions") {
     val code = "1453"
     val location = TokenLocation(Position(2, 1), Position(4,10))
-    val expected = List(IntLiteralT(code, location))
+    val expected = List(Token(code, IntLiteral, location))
     val result = Tokenizer.tokenize(code)
     result match {
       case Success(result) => assertNotEquals(result, expected)
@@ -150,16 +157,16 @@ class TokenizerTestWithLocation extends munit.FunSuite {
   test("should work with int literals") {
     val code = "1453"
     val location = TokenLocation(Position(1, 1), Position(1,5))
-    val expected = List(IntLiteralT(code, location))
+    val expected = List(Token(code, IntLiteral, location))
     test_tokenizer(code, expected)
   }
 
   test("should work with a newline") {
     val code = "if  3\nwhile"
     val expected = List(
-      IdentifierT("if", TokenLocation(Position(1,1), Position(1,3))),
-      IntLiteralT("3", TokenLocation(Position(1,5), Position(1,6))),
-      IdentifierT("while", TokenLocation(Position(2,1), Position(2,6)))
+      Token("if", Identifier, TokenLocation(Position(1,1), Position(1,3))),
+      Token("3", IntLiteral, TokenLocation(Position(1,5), Position(1,6))),
+      Token("while", Identifier, TokenLocation(Position(2,1), Position(2,6)))
     )
     test_tokenizer(code, expected)
   }
@@ -167,10 +174,10 @@ class TokenizerTestWithLocation extends munit.FunSuite {
   test("should work with multiple newline") {
     val code = "if  3\nwhile\n\nprint_int"
     val expected = List(
-      IdentifierT("if", TokenLocation(Position(1,1), Position(1,3))),
-      IntLiteralT("3", TokenLocation(Position(1,5), Position(1,6))),
-      IdentifierT("while", TokenLocation(Position(2,1), Position(2,6))),
-      IdentifierT("print_int", TokenLocation(Position(4,1), Position(4,10)))
+      Token("if", Identifier, TokenLocation(Position(1,1), Position(1,3))),
+      Token("3", IntLiteral, TokenLocation(Position(1,5), Position(1,6))),
+      Token("while", Identifier, TokenLocation(Position(2,1), Position(2,6))),
+      Token("print_int", Identifier, TokenLocation(Position(4,1), Position(4,10)))
     )
     test_tokenizer(code, expected)
   }
@@ -178,17 +185,17 @@ class TokenizerTestWithLocation extends munit.FunSuite {
   test("should work with multiple tokens") {
     val code = "1 + 2 % 4 / 3 * 3 <= 100"
     val expected = List(
-      IntLiteralT("1", TokenLocation(Position(1,1), Position(1,2))),
-      OperatorT("+", TokenLocation(Position(1,3), Position(1,4))),
-      IntLiteralT("2", TokenLocation(Position(1,5), Position(1,6))),
-      OperatorT("%", TokenLocation(Position(1,7), Position(1,8))),
-      IntLiteralT("4", TokenLocation(Position(1,9), Position(1,10))),
-      OperatorT("/", TokenLocation(Position(1,11), Position(1,12))),
-      IntLiteralT("3", TokenLocation(Position(1,13), Position(1,14))),
-      OperatorT("*", TokenLocation(Position(1,15), Position(1,16))),
-      IntLiteralT("3", TokenLocation(Position(1,17), Position(1,18))),
-      OperatorT("<=", TokenLocation(Position(1,19), Position(1,21))),
-      IntLiteralT("100", TokenLocation(Position(1,22), Position(1,25)))
+      Token("1", IntLiteral, TokenLocation(Position(1,1), Position(1,2))),
+      Token("+", Operator, TokenLocation(Position(1,3), Position(1,4))),
+      Token("2", IntLiteral, TokenLocation(Position(1,5), Position(1,6))),
+      Token("%", Operator, TokenLocation(Position(1,7), Position(1,8))),
+      Token("4", IntLiteral, TokenLocation(Position(1,9), Position(1,10))),
+      Token("/", Operator, TokenLocation(Position(1,11), Position(1,12))),
+      Token("3", IntLiteral, TokenLocation(Position(1,13), Position(1,14))),
+      Token("*", Operator, TokenLocation(Position(1,15), Position(1,16))),
+      Token("3", IntLiteral, TokenLocation(Position(1,17), Position(1,18))),
+      Token("<=", Operator, TokenLocation(Position(1,19), Position(1,21))),
+      Token("100", IntLiteral, TokenLocation(Position(1,22), Position(1,25)))
     )
     test_tokenizer(code, expected)
   }

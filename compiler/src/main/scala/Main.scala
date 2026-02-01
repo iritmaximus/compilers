@@ -1,10 +1,13 @@
 package compiler
 
+import scala.util.{Try, Failure, Success}
+
 import java.io.{BufferedReader, InputStreamReader, PrintWriter}
 import java.net.{ServerSocket, Socket};
 import java.util.stream.Stream
 
 import compiler.Tokenizer._
+import compiler.Parser._
 
 
 @main def hello(): Unit =
@@ -45,4 +48,9 @@ def run_server(): Unit =
     out.println(response);
 
 def compile(source: String): String =
-  return Tokenizer.tokenize(source).toString()
+  val tokens = Tokenizer.tokenize(source)
+  val ast = tokens match {
+    case Success(tokens) => Parser.parse(tokens)
+    case Failure(err) => Failure(err)
+  }
+  return ast.toString()
