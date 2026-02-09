@@ -10,7 +10,7 @@ import compiler.Tokenizer._
 import compiler.Parser._
 
 
-@main def hello(): Unit =
+@main def main(): Unit =
   println("Hello world!")
   println(msg)
   run_server()
@@ -44,8 +44,11 @@ def run_server(): Unit =
       case _ => s"{\"error\": \"Incorrect json request body\"}"
     }
 
+
+    println(s"Responding with: ${response}")
     // Send response to the client
-    out.println(response);
+    out.println(response)
+    out.close()
 
 def compile(source: String): String =
   val tokens = Tokenizer.tokenize(source)

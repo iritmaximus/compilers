@@ -6,6 +6,8 @@ lazy val root = project
     name := "compiler",
     version := "0.1.0-SNAPSHOT",
 
+    mainClass := Some("compiler.main"),
+
     scalaVersion := scala3Version,
     libraryDependencies ++= Seq(
       "org.scalameta" %% "munit" % "1.0.0" % Test,

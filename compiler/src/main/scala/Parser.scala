@@ -4,15 +4,15 @@ import scala.util.{Try, Success, Failure}
 
 import compiler.Tokenizer.{Token, TokenType}
 
-sealed trait Expression:
+sealed abstract class Expression:
   //override def toString() = s"${this.getClass.getName.stripPrefix("compiler.Parser.")}($this)"
   override def toString() = s"Expression(TODO)"
 
 
-class Literal(value: Int | Boolean) extends Expression
-class Identifier(name: String) extends Expression
-class BinaryOperator(left: Expression, operator: String, right: Expression) extends Expression
-class Other() extends Expression
+case class Literal(value: Int | Boolean) extends Expression
+case class Identifier(name: String) extends Expression
+case class BinaryOperator(left: Expression, operator: String, right: Expression) extends Expression
+case class Other() extends Expression
 
 class Parser(tokens: List[Token]):
   // Keeps track of current token, index to tokens: List[Token]
