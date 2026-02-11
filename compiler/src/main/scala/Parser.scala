@@ -21,23 +21,27 @@ class Parser(tokens: List[Token]):
   def peek(): Token =
     return tokens(pos)
 
-  def consume(expected: Option[TokenType | List[TokenType]] = None): Token =
+  def consume(expected: Option[TokenType | List[TokenType] | String | List[String]] = None): Try[Token] =
     val token = peek()
 
     expected match {
-      case Some(types) => types match {
-        case that: TokenType => println("IMPLEMENT TOKENTYPE")
-        case that: List[TokenType] => println("IMPLEMENT LIST[TOKENTYPE]")
+      case Some(that) => {
+        that match {
+          case expected: String if expected == token.value => {}
+          case expected: TokenType if expected == token.tokenType => {}
+          case expected: List[String] if expected.contains(token.value) => {}
+          case expected: List[TokenType] if expected.contains(token.tokenType) => {}
+          case _ => return Failure(new Exception(s"Token ${token} was not expected ${expected}"))
+        }
       }
-      case None => println("IMPLEMENT NONE")
+      case None => return Failure(new Exception(s"Trying to parse incorrect expected value: ${expected}"))
     }
-    
-    pos += 1
-    return tokens(pos)
 
-  def handleExpected(token: Token, expected: TokenType): Try[Token] =
+    pos += 1
     return Success(token)
 
+  def parseIntLiteral(): Try[Token] =
+    return consume(Some(TokenType.IntLiteral))
 
 object Parser:
   def parse(tokens: List[Token]): Try[Expression] =
