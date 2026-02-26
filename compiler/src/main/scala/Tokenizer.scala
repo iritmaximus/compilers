@@ -32,7 +32,7 @@ class TokenLocationDebug():
 
 // Try to keep this in sync with the above classes
 enum TokenType:
-  case Whitespace, Comment, IntLiteral, Operator, Punctuation, Identifier, Other, Error
+  case Whitespace, Comment, IntLiteral, Operator, Punctuation, Identifier, Other, End, Error
 
 // Access TokenType cases without TokenType. prefix: TokenType.Identifier vs Identifier
 import compiler.Tokenizer.TokenType._

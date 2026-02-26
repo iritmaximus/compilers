@@ -71,6 +71,26 @@ class ParserTests extends munit.FunSuite {
       case Failure(that) => fail("Parsing failed: " + that)
     }
   }
+  test("should parse simple sum with identifiers") {
+    val p = testParser("1 + x")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(Literal(1), "+", Identifier("x"))
+
+    result match {
+      case Success(that) => assertEquals(that, expected)
+      case Failure(that) => fail("Parsing failed: " + that)
+    }
+  }
+  test("should parse simple sum with only identifiers") {
+    val p = testParser("value + tokenLen")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(Identifier("value"), "+", Identifier("tokenLen"))
+
+    result match {
+      case Success(that) => assertEquals(that, expected)
+      case Failure(that) => fail("Parsing failed: " + that)
+    }
+  }
   test("should fail with missing operator") {
     val p = testParser("1 2")
     val result = p.parseExpression()
@@ -80,8 +100,7 @@ class ParserTests extends munit.FunSuite {
       case Failure(that) => assert(true)
     }
   }
-  // FIXME: Inde out of range
-  test("should fail with missing ints".fail) {
+  test("should fail with missing ints") {
     val p1 = testParser("1 +")
     val result1 = p1.parseExpression()
 
@@ -103,8 +122,64 @@ class ParserTests extends munit.FunSuite {
     }
   }
 
+  // IDENTIFIER
+  test("should parse simple identifier") {
+    val p = testParser("parse_int")
+    val result = p.parseIdentifier()
+    val expected = Identifier("parse_int")
 
-  test("should parse multiple operators".fail) {
+    result match {
+      case Success(that) => assertEquals(that, expected)
+      case Failure(that) => fail("Parsing failed: " + that)
+    }
+  }
+  test("should parse multiple simple identifiers in a row") {
+    val p = testParser("parse_int BigInt")
+    val result1 = p.parseIdentifier()
+    val result2 = p.parseIdentifier()
+    val expected = List(Identifier("parse_int"), Identifier("BigInt"))
+
+    (result1, result2) match {
+      case (Success(r1), Success(r2)) => assertEquals(List(r1, r2), expected)
+      case (r1, r2) => fail(s"Parsing failed: ${r1}, ${r2}")
+    }
+  }
+
+  // TERM
+  test("should parse either identifier or int literal (identifier)") {
+    val p = testParser("parse_int")
+    val result = p.parseTerm()
+    val expected = Identifier("parse_int")
+
+    result match {
+      case Success(that) => assertEquals(that, expected)
+      case Failure(that) => fail("Parsing failed: " + that)
+    }
+  }
+  test("should parse either identifier or int literal (int_literal)") {
+    val p = testParser("51080")
+    val result = p.parseTerm()
+    val expected = Literal(51080)
+
+    result match {
+      case Success(that) => assertEquals(that, expected)
+      case Failure(that) => fail("Parsing failed: " + that)
+    }
+  }
+  test("should parse either identifier or int literal (both)") {
+    val p = testParser("parse_int 14580")
+    val result1 = p.parseTerm()
+    val result2 = p.parseTerm()
+    val expected = List(Identifier("parse_int"), Literal(14580))
+
+    (result1, result2) match {
+      case (Success(r1), Success(r2)) => assertEquals(List(r1, r2), expected)
+      case (r1, r2) => fail(s"Parsing failed: ${r1}, ${r2}")
+    }
+  }
+
+
+  test("should parse multiple operators") {
     val p = testParser("1 + 2 - 40")
     val result = p.parseExpression()
     val expected = BinaryOperator(BinaryOperator(Literal(1), "+", Literal(2)), "-", Literal(40))
