@@ -5,14 +5,21 @@ import scala.util.{Try, Success, Failure}
 import compiler.Tokenizer.{Token, TokenType}
 
 sealed abstract class Expression:
-  //override def toString() = s"${this.getClass.getName.stripPrefix("compiler.Parser.")}($this)"
   override def toString() = s"Expression(TODO)"
 
 
-case class Literal(value: Int | Boolean) extends Expression
-case class Identifier(name: String) extends Expression
-case class BinaryOperator(left: Expression, operator: String, right: Expression) extends Expression
-case class Other() extends Expression
+case class Literal(value: Int | Boolean) extends Expression {
+  override def toString: String = s"Literal($value)"
+}
+case class Identifier(name: String) extends Expression {
+  override def toString: String = s"Identifier($name)"
+}
+case class BinaryOperator(left: Expression, operator: String, right: Expression) extends Expression {
+  override def toString: String = s"BinaryOperator(l: $left, op: $operator, r: $right)"
+}
+case class Other() extends Expression {
+  override def toString: String = s"Other()"
+}
 
 class Parser(tokens: List[Token]):
   // Keeps track of current token, index to tokens: List[Token]
@@ -38,7 +45,7 @@ class Parser(tokens: List[Token]):
           case _ => return Failure(new Exception(s"Token ${token} was not expected ${expected}"))
         }
       }
-      case None => return Failure(new Exception(s"Trying to parse incorrect expected value: ${expected}"))
+      case None => return Failure(new Exception(s"Incorrect expected value: ${expected}"))
     }
 
     pos += 1
@@ -50,7 +57,7 @@ class Parser(tokens: List[Token]):
       case Success(that) => {
         that.value.toIntOption match {
           case Some(int) => Success(Literal(int))
-          case None => Failure(new Exception(s"Value of token was not int: ${token}"))
+          case None => Failure(new Exception(s"Token value not int: ${token}"))
         }
       }
       case Failure(that) => Failure(that)
@@ -60,43 +67,64 @@ class Parser(tokens: List[Token]):
     val token = consume(Some(TokenType.Identifier))
     return token match {
       case Success(that) => Success(Identifier(that.value))
-      case Failure(that) => Failure(new Exception(s"Incorrect token when trying to parse identifier: ${token}"))
+      case Failure(that) => Failure(new Exception(s"Incorrect identifier token: ${token}"))
     }
 
-  def parseTerm(): Try[Expression] =
-    val tokenType = peek().tokenType
-    return tokenType match {
+  def parseParenthisized(): Try[Expression] =
+    consume(Some("("))
+    val expression = parseExpression()
+    consume(Some(")"))
+    return expression
+
+  def parseFactor(): Try[Expression] =
+    val token = peek()
+    return token.tokenType match {
       case TokenType.IntLiteral => parseIntLiteral()
       case TokenType.Identifier => parseIdentifier()
-      case _ => Failure(new Exception("Failed to parse term, got ${tokenType} token"))
+      case TokenType.Punctuation if token.value == "(" => parseParenthisized()
+      case _ => Failure(new Exception(s"Incorrect token type, expected (, int literal or identifier, got ${token.tokenType} token"))
     }
-    
 
-  def parseExpression(): Try[BinaryOperator] =
-    var left = parseTerm()
+    
+  def parseTerm(): Try[Expression] =
+    val operators = List("/", "*")
+    var left = parseFactor()
 
     while
-      List("+", "-").contains(peek().value)
+      operators.contains(peek().value)
     do
-      val operatorToken = consume(Some(List("+", "-")))
-      val right = parseTerm()
+      val operatorToken = consume(Some(operators))
+      val right = parseFactor()
       left = (left, operatorToken, right) match {
         case (Success(l), Success(op), Success(r)) => Success(BinaryOperator(l, op.value, r))
-        case _ => Failure(new Exception(s"Trying to parse BinaryOperator but failed with values ${left} ${operatorToken} ${right}"))
+        case _ => Failure(new Exception(s"Failure in some value: l:${left}, op:${operatorToken}, r:${right}"))
       }
 
     return left match {
-      case Success(that) => that match {
-        case left: BinaryOperator => Success(left)
-        case left: Expression => Failure(new Exception("Failed to parse BinaryOperator but failed with missing operator"))
-
-      }
-      case Failure(that) => Failure(new Exception(s"Failed to parse BinaryOperator but failed with incorrect left value ${left}"))
+      case Success(that) => Success(that)
+      case Failure(that) => Failure(new Exception(s"$left"))
     }
-    
 
+  def parseExpression(): Try[Expression] =
+    val operators = List("+", "-")
+    var left = parseTerm()
 
-    
+    while
+      operators.contains(peek().value)
+    do
+      val operatorToken = consume(Some(operators))
+      val right = parseTerm()
+      left = (left, operatorToken, right) match {
+        case (Success(l), Success(op), Success(r)) => Success(BinaryOperator(l, op.value, r))
+        case _ => Failure(new Exception(s"Faiure in some value: l:${left}, op:${operatorToken}, r:${right}"))
+      }
+
+    if peek().tokenType != TokenType.End then return Failure(new Exception("Tokens left when there should not be"))
+
+    return left match {
+        case Success(that)=> Success(that)
+        case Failure(that) => Failure(new Exception(s"Incorrect value ${left}"))
+    }
 
 
 object Parser:

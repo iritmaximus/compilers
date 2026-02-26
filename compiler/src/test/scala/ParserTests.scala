@@ -121,6 +121,15 @@ class ParserTests extends munit.FunSuite {
       case Failure(that) => assert(true)
     }
   }
+  test("should fail with extra int") {
+    val p = testParser("1 + 2 3")
+    val result = p.parseExpression()
+
+    result match {
+      case Success(that) => fail("Parsing should have failed but succeeded: " + that)
+      case Failure(that) => assert(true)
+    }
+  }
 
   // IDENTIFIER
   test("should parse simple identifier") {
