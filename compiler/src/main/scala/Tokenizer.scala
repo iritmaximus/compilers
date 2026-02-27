@@ -38,7 +38,7 @@ enum TokenType:
 import compiler.Tokenizer.TokenType._
 
 class Token(val value: String, val tokenType: TokenType ,val location: TokenLocation | TokenLocationDebug):
-  override def toString: String = s"${this.getClass.getName.stripPrefix("compiler.Tokenizer.")}($value, $location)"
+  override def toString: String = s"${this.getClass.getName.stripPrefix("compiler.Tokenizer.")}($value, $tokenType, $location)"
   override def equals(other: Any): Boolean = other match {
     case that: Token => {
       that.location match {

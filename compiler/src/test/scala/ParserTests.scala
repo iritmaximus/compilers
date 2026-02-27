@@ -23,40 +23,31 @@ class ParserTests extends munit.FunSuite {
     val result = p.parseIntLiteral()
     val expected = Literal(7)
 
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
+
   test("should parse bigger ints correctly") {
     val p = testParser("59819")
     val result = p.parseIntLiteral()
     val expected = Literal(59819)
 
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
   test("should parse separate ints correctly") {
     val p = testParser("5 1 40")
-    val result1 = p.parseIntLiteral()
-    val result2 = p.parseIntLiteral()
-    val result3 = p.parseIntLiteral()
+    val r1 = p.parseIntLiteral()
+    val r2 = p.parseIntLiteral()
+    val r3 = p.parseIntLiteral()
     val expected = List(Literal(5), Literal(1), Literal(40))
 
-    (result1, result2, result3) match {
-      case (Success(r1), Success(r2), Success(r3)) => assertEquals(List(r1, r2, r3), expected)
-      case _ => fail("Parsing failed")
-    }
+    assertEquals(List(r1, r2, r3), expected)
   }
   test("should not parse non-int values") {
+    val token = Tokenizer.tokenize("else").get(0)
     val p = testParser("else")
-    val result = p.parseIntLiteral()
 
-    result match {
-      case Success(that) => fail("Parsing should have failed but succeeded: " + that)
-      case Failure(that) => assert(true)
+    interceptMessage[java.lang.Exception](s"Token $token was not expected: IntLiteral") {
+      val result = p.parseIntLiteral()
     }
   }
 
@@ -65,93 +56,72 @@ class ParserTests extends munit.FunSuite {
     val p = testParser("1 + 2")
     val result = p.parseExpression()
     val expected = BinaryOperator(Literal(1), "+", Literal(2))
-
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
   test("should parse simple sum with identifiers") {
     val p = testParser("1 + x")
     val result = p.parseExpression()
     val expected = BinaryOperator(Literal(1), "+", Identifier("x"))
 
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
   test("should parse simple sum with only identifiers") {
     val p = testParser("value + tokenLen")
     val result = p.parseExpression()
     val expected = BinaryOperator(Identifier("value"), "+", Identifier("tokenLen"))
 
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
   test("should fail with missing operator") {
+    val errorToken = Tokenizer.tokenize("1 2").get(1)
     val p = testParser("1 2")
-    val result = p.parseExpression()
 
-    result match {
-      case Success(that) => fail("Parsing should have failed but succeeded: " + that)
-      case Failure(that) => assert(true)
+    interceptMessage[java.lang.Exception](s"Token $errorToken was not expected: List(+, -)") {
+      val result = p.parseExpression()
     }
   }
   test("should fail with missing ints") {
     val p1 = testParser("1 +")
-    val result1 = p1.parseExpression()
-
     val p2 = testParser("+ 2")
-    val result2 = p2.parseExpression()
 
-    (result1, result2) match {
-      case (Failure(r1), Failure(r2)) => assert(true)
-      case _ => fail("Parsing should have failed but succeeded" + result1 + result2)
+    interceptMessage[java.lang.Exception](s"Incorrect token type: Expected (, int literal or identifier, got End token") {
+      p1.parseExpression()
+    }
+    interceptMessage[java.lang.Exception](s"Incorrect token type: Expected (, int literal or identifier, got Operator token") {
+      p2.parseExpression()
     }
   }
   test("should fail with incorrect operator") {
+    val token = Tokenizer.tokenize("1 while").get(1)
     val p = testParser("1 while 2")
-    val result = p.parseExpression()
 
-    result match {
-      case Success(that) => fail("Parsing should have failed but succeeded: " + that)
-      case Failure(that) => assert(true)
+    interceptMessage[java.lang.Exception](s"Token $token was not expected: List(+, -)") {
+      p.parseExpression()
     }
   }
   test("should fail with extra int") {
     val p = testParser("1 + 2 3")
-    val result = p.parseExpression()
 
-    result match {
-      case Success(that) => fail("Parsing should have failed but succeeded: " + that)
-      case Failure(that) => assert(true)
+    interceptMessage[java.lang.Exception]("Tokens left when there should not be") {
+      p.parseExpression()
     }
   }
+    
 
   // IDENTIFIER
   test("should parse simple identifier") {
     val p = testParser("parse_int")
     val result = p.parseIdentifier()
     val expected = Identifier("parse_int")
-
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
   test("should parse multiple simple identifiers in a row") {
     val p = testParser("parse_int BigInt")
-    val result1 = p.parseIdentifier()
-    val result2 = p.parseIdentifier()
+    val r1 = p.parseIdentifier()
+    val r2 = p.parseIdentifier()
     val expected = List(Identifier("parse_int"), Identifier("BigInt"))
 
-    (result1, result2) match {
-      case (Success(r1), Success(r2)) => assertEquals(List(r1, r2), expected)
-      case (r1, r2) => fail(s"Parsing failed: ${r1}, ${r2}")
-    }
+    assertEquals(List(r1, r2), expected)
   }
 
   // TERM
@@ -160,43 +130,30 @@ class ParserTests extends munit.FunSuite {
     val result = p.parseTerm()
     val expected = Identifier("parse_int")
 
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
   test("should parse either identifier or int literal (int_literal)") {
     val p = testParser("51080")
     val result = p.parseTerm()
     val expected = Literal(51080)
 
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
   test("should parse either identifier or int literal (both)") {
     val p = testParser("parse_int 14580")
-    val result1 = p.parseTerm()
-    val result2 = p.parseTerm()
+    val r1 = p.parseTerm()
+    val r2 = p.parseTerm()
     val expected = List(Identifier("parse_int"), Literal(14580))
 
-    (result1, result2) match {
-      case (Success(r1), Success(r2)) => assertEquals(List(r1, r2), expected)
-      case (r1, r2) => fail(s"Parsing failed: ${r1}, ${r2}")
-    }
+    assertEquals(List(r1, r2), expected)
   }
-
 
   test("should parse multiple operators") {
     val p = testParser("1 + 2 - 40")
     val result = p.parseExpression()
     val expected = BinaryOperator(BinaryOperator(Literal(1), "+", Literal(2)), "-", Literal(40))
 
-    result match {
-      case Success(that) => assertEquals(that, expected)
-      case Failure(that) => fail("Parsing failed: " + that)
-    }
+    assertEquals(result, expected)
   }
 
 }
