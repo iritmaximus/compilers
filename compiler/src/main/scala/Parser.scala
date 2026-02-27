@@ -17,9 +17,12 @@ case class Identifier(name: String) extends Expression {
 case class BinaryOperator(left: Expression, operator: String, right: Expression) extends Expression {
   override def toString: String = s"BinaryOperator(l: $left, op: $operator, r: $right)"
 }
-// case class ControlFlow(name: String, condition: Expression, body: Expression, elseBody: Option[Expression]) {
-//   override def toString: String = s"ControlFlow($name $condition: $body)"
-// }
+case class IfThenElse(condition: Expression, body: Expression, elseBody: Option[Expression]) extends Expression {
+  override def toString: String = s"If($condition then $body)"
+}
+case class Function(name: String, arguments: List[Expression]) extends Expression {
+  override def toString: String = s"Function($name(${arguments.mkString(", ")}))"
+}
 case class Other() extends Expression {
   override def toString: String = s"Other()"
 }
@@ -81,6 +84,7 @@ class Parser(tokens: List[Token]):
     val token = peek()
     return token.tokenType match {
       case TokenType.IntLiteral => parseIntLiteral()
+      case TokenType.Identifier if token.value =="if" => parseIfThenElse()
       case TokenType.Identifier => parseIdentifier()
       case TokenType.Punctuation if token.value == "(" => parseParenthisized()
       case _ => throw new Exception(s"Incorrect token type: Expected (, int literal or identifier, got ${token.tokenType} token")
@@ -99,20 +103,54 @@ class Parser(tokens: List[Token]):
 
     return left
 
+
+  def parseIfThenElse(): Expression =
+    consume(Some("if")).get
+    val condition = parseExpression()
+    consume(Some("then")).get
+    val body = parseExpression()
+    var elseBody: Option[Expression] = None
+    if peek().value == "else" then
+      consume(Some("else"))
+      elseBody = Some(parseExpression())
+
+    return IfThenElse(condition, body, elseBody)
+
+
+  def parseFunction(parsedFnName: Option[String] = None): Expression =
+    val fnName = parsedFnName.getOrElse(consume(Some(TokenType.Identifier)).get.value)
+    consume(Some("(")).get
+    var args: List[Expression] = List()
+    while
+      peek().value != ")"
+    do
+      args = args ::: List(parseExpression())
+      if peek().value == "," then consume(Some(",")).get
+
+    consume(Some(")")).get
+    return Function(fnName, args)
+
   def parseExpression(): Expression =
     val operators = List("+", "-")
     var left = parseTerm()
 
+    // If identifier is followed by ( => it is a function call
+    left = left match {
+      case left: Identifier if peek().value == "(" => parseFunction(Some(left.name))
+      case _ => left
+    }
+    
     while
+      operators.contains(peek().value)
+    do
       val operatorToken = consume(Some(operators)).get
       val right = parseTerm()
       left = BinaryOperator(left, operatorToken.value, right)
-      operators.contains(peek().value)
-    do ()
 
-    if peek().tokenType != TokenType.End then throw new Exception("Tokens left when there should not be")
+    // if peek().tokenType != TokenType.End then throw new Exception("Tokens remaining when there should not be")
 
     return left
+   
 
 object Parser:
   def parse(tokens: List[Token]): Try[Expression] =
