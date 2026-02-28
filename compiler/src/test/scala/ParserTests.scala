@@ -127,34 +127,65 @@ class ParserTests extends munit.FunSuite {
     assertEquals(List(r1, r2), expected)
   }
 
-  // TERM
+  // TERM (there is no parseTerm anymore but oh well)
   test("should parse either identifier or int literal (identifier)") {
     val p = testParser("parse_int")
-    val result = p.parseTerm()
+    val result = p.parseExpression()
     val expected = Identifier("parse_int")
 
     assertEquals(result, expected)
   }
   test("should parse either identifier or int literal (int_literal)") {
     val p = testParser("51080")
-    val result = p.parseTerm()
+    val result = p.parseExpression()
     val expected = Literal(51080)
 
     assertEquals(result, expected)
   }
   test("should parse either identifier or int literal (both)") {
     val p = testParser("parse_int 14580")
-    val r1 = p.parseTerm()
-    val r2 = p.parseTerm()
+    val r1 = p.parseExpression()
+    val r2 = p.parseExpression()
     val expected = List(Identifier("parse_int"), Literal(14580))
 
     assertEquals(List(r1, r2), expected)
   }
 
-  test("should parse multiple operators") {
+  test("should parse multiple operators with correct associativity") {
     val p = testParser("1 + 2 - 40")
     val result = p.parseExpression()
     val expected = BinaryOperator(BinaryOperator(Literal(1), "+", Literal(2)), "-", Literal(40))
+
+    assertEquals(result, expected)
+  }
+  test("should parse multiple operators with different precedence levels (* first)") {
+    val p = testParser("1 * 2 + 40")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(BinaryOperator(Literal(1), "*", Literal(2)), "+", Literal(40))
+
+    assertEquals(result, expected)
+  }
+  test("should parse multiple operators with different precedence levels (* last)") {
+    val p = testParser("1 + 2 * 40")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(Literal(1), "+", BinaryOperator(Literal(2), "*", Literal(40)))
+
+    assertEquals(result, expected)
+  }
+  test("should parse multiple operators with different precedence levels (* in the middle)") {
+    // (1 + (2 * 40)) - 1
+    val p = testParser("1 + 2 * 40 - 1")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      BinaryOperator(
+        Literal(1),
+        "+",
+        BinaryOperator(
+          Literal(2),
+          "*",
+          Literal(40))),
+      "-",
+      Literal(1))
 
     assertEquals(result, expected)
   }
@@ -231,7 +262,6 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(result, expected)
   }
-  // TODO: Fails with function as a parameter
   test("should parse function with multiple complex parameters + incl. functions") {
     val p = testParser("print_int(x+y, 1 * (xy+z), parse_int())")
     val result = p.parseFunction()
@@ -240,6 +270,54 @@ class ParserTests extends munit.FunSuite {
       BinaryOperator(Literal(1), "*", BinaryOperator(Identifier("xy"), "+", Identifier("z"))),
       Function("parse_int", List())
     ))
+
+    assertEquals(result, expected)
+  }
+
+  // REMAINDER
+  test("should parse simple % remainder operator") {
+    val p = testParser("5 % 2")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(Literal(5), "%", Literal(2))
+
+    assertEquals(result, expected)
+  }
+  test("should parse % remainder with other operators") {
+    // (1 * (20 % 4)) + 3
+    val p = testParser("1 * 20 % 4 + 3")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(BinaryOperator(BinaryOperator(Literal(1), "*", Literal(20)), "%", Literal(4)), "+", Literal(3))
+
+    assertEquals(result, expected)
+  }
+
+  // COMPARISONS
+  test("should parse simple equal comparison") {
+    val p = testParser("20 == 20")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(Literal(20), "==", Literal(20))
+
+    assertEquals(result, expected)
+  }
+  test("should parse equal comparison with simple expressions (with parenthesis)") {
+    val p = testParser("(1 + 2 * 40) == parse_int")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      BinaryOperator(Literal(1), "+", BinaryOperator(Literal(2), "*", Literal(40))),
+      "==",
+      Identifier("parse_int")
+    )
+
+    assertEquals(result, expected)
+  }
+  test("should parse equal comparison with simple expressions (without parenthesis)") {
+    val p = testParser("1 + 2 * 40 == parse_int")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      BinaryOperator(Literal(1), "+", BinaryOperator(Literal(2), "*", Literal(40))),
+      "==",
+      Identifier("parse_int")
+    )
 
     assertEquals(result, expected)
   }
