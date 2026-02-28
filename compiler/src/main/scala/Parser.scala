@@ -44,6 +44,7 @@ class Parser(tokens: List[Token]):
   def peek(): Token =
     return if pos < tokens.length then tokens(pos) else Token("", TokenType.End, tokens.last.location)
 
+
   def consume(expected: Option[TokenType | String | List[String]] = None): Try[Token] =
     val token = peek()
 
@@ -66,6 +67,7 @@ class Parser(tokens: List[Token]):
     pos += 1
     return Success(token)
 
+
   def parseIntLiteral(): Literal =
     val token = consume(Some(TokenType.IntLiteral))
     return token match {
@@ -76,6 +78,7 @@ class Parser(tokens: List[Token]):
       case Failure(that) => throw that
     }
 
+
   def parseIdentifier(): Identifier =
     val token = consume(Some(TokenType.Identifier))
     return token match {
@@ -83,12 +86,14 @@ class Parser(tokens: List[Token]):
       case Failure(that) => throw that 
     }
 
+
   def parseParenthisized(): Expression =
     // Throw error if consume returns Failure
     consume(Some("(")).get
     val expression = parseExpression()
     consume(Some(")")).get
     return expression
+
 
   def parseFactor(): Expression =
     val token = peek()
@@ -99,7 +104,6 @@ class Parser(tokens: List[Token]):
       case TokenType.Punctuation if token.value == "(" => parseParenthisized()
       case _ => throw new Exception(s"Incorrect token type: Expected (, int literal or identifier, got ${token.tokenType} token")
     }
-
 
 
   def parseIfThenElse(): Expression =
@@ -128,8 +132,9 @@ class Parser(tokens: List[Token]):
     consume(Some(")")).get
     return Function(fnName, args)
 
-  def parseExpression(depth: Int = 0): Expression =
-    var mutDepth = depth
+
+  def parseExpression(initialDepth: Int = 0): Expression =
+    var depth = initialDepth
     var left = parseFactor()
 
     // If identifier is followed by ( => it is a function call (or syntax error :D)
@@ -139,18 +144,16 @@ class Parser(tokens: List[Token]):
     }
     
     while
-      mutDepth < operators.length
+      depth < operators.length
     do
       while
-        operators(mutDepth).contains(peek().value)
+        operators(depth).contains(peek().value)
       do
-        val operatorToken = consume(Some(operators(mutDepth))).get
-        val right = parseExpression(mutDepth + 1)
+        val operatorToken = consume(Some(operators(depth))).get
+        val right = parseExpression(depth + 1)
         left = BinaryOperator(left, operatorToken.value, right)
-        // mutDepth = 0
-
-      mutDepth += 1
-      // if peek().tokenType != TokenType.End then throw new Exception("Tokens remaining when there should not be")
+        depth = initialDepth
+      depth += 1
 
     return left
    
