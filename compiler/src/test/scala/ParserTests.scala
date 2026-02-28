@@ -16,6 +16,7 @@ abstract class BaseParserTests extends munit.FunSuite {
     return Parser(tokens.getOrElse(List(Token("error", tt.Error, TokenLocationDebug()))))
 }
 
+
 class ParserIntLiteralTests extends BaseParserTests {
   test("should parse single ints correctly") {
     val p = testParser("7")
@@ -50,6 +51,7 @@ class ParserIntLiteralTests extends BaseParserTests {
     }
   }
 }
+
 
 class ParserBinaryOperatorTests extends BaseParserTests {
   test("should parse simple sum") {
@@ -129,6 +131,7 @@ class ParserIdentifierTests extends BaseParserTests {
   }
 }
 
+
 class ParserTermTests extends BaseParserTests {
   test("should parse either identifier or int literal (identifier)") {
     val p = testParser("parse_int")
@@ -153,6 +156,7 @@ class ParserTermTests extends BaseParserTests {
     assertEquals(List(r1, r2), expected)
   }
 }
+
 
 class ParserAssociativityTests extends BaseParserTests {
   test("should parse multiple operators with correct associativity") {
@@ -194,6 +198,8 @@ class ParserAssociativityTests extends BaseParserTests {
     assertEquals(result, expected)
   }
 }
+
+
 class ParserIfThenElseTests extends BaseParserTests {
   test("should parse simple if then expression") {
     val p = testParser("if true then 1 + 1")
@@ -232,6 +238,7 @@ class ParserIfThenElseTests extends BaseParserTests {
     }
   }
 }
+
 
 class ParserFunctionTests extends BaseParserTests {
   // Function
@@ -279,6 +286,7 @@ class ParserFunctionTests extends BaseParserTests {
     assertEquals(result, expected)
   }
 }
+
 
 class ParserRemainderTests extends BaseParserTests {
   // REMAINDER
@@ -361,6 +369,7 @@ class ParserPrecedenceTests extends BaseParserTests {
     assertEquals(result, expected)
   }
 }
+
 
 class ParserComparisonTests extends BaseParserTests {
   test("should parse less than (or equals) comparison with simple expressions") {
@@ -475,6 +484,7 @@ class ParserComparisonTests extends BaseParserTests {
 
 }
 
+
 class ParserUnaryOperatorTests extends BaseParserTests {
   test("should parse simple unary `not` operator") {
     val p = testParser("not true")
@@ -514,6 +524,7 @@ class ParserUnaryOperatorTests extends BaseParserTests {
   }
 }
   
+
 class ParserEqualTests extends BaseParserTests {
   test("should parse simple assignment") {
     val p = testParser("a = b")
