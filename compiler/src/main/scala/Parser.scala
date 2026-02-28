@@ -21,7 +21,13 @@ case class UnaryOperator(operator: String, expr: Expression) extends Expression 
   override def toString: String = s"UnaryOperator($operator: $expr)"
 }
 case class IfThenElse(condition: Expression, body: Expression, elseBody: Option[Expression]) extends Expression {
-  override def toString: String = s"If($condition then $body)"
+  override def toString: String = s"If($condition then $body, else $elseBody)"
+}
+case class WhileDo(condition: Expression, body: Expression) extends Expression {
+  override def toString: String = s"While($condition do $body)"
+}
+case class Declaration(name: Identifier, body: Expression) extends Expression {
+  override def toString: String = s"Var($name = $body)"
 }
 case class Function(name: String, arguments: List[Expression]) extends Expression {
   override def toString: String = s"Function($name(${arguments.mkString(", ")}))"
@@ -110,6 +116,7 @@ class Parser(tokens: List[Token]):
     return token.tokenType match {
       case TokenType.IntLiteral => parseIntLiteral()
       case TokenType.Identifier if token.value == "if" => parseIfThenElse()
+      case TokenType.Identifier if token.value == "while" => parseWhileDo()
       case TokenType.Identifier if token.value == "not" => parseUnaryOperator()
       case TokenType.Identifier => parseIdentifier()
       case TokenType.Operator if token.value == "-" => parseUnaryOperator()
@@ -129,6 +136,14 @@ class Parser(tokens: List[Token]):
       elseBody = Some(parseExpression())
 
     return IfThenElse(condition, body, elseBody)
+
+
+  def parseWhileDo(): Expression =
+    consume(Some("while")).get
+    val condition = parseExpression()
+    consume(Some("do")).get
+    val body = parseExpression()
+    return WhileDo(condition, body)
 
 
   def parseFunction(parsedFnName: Option[String] = None): Expression =
@@ -160,6 +175,13 @@ class Parser(tokens: List[Token]):
     return right
 
 
+  def parseDeclaration(): Expression =
+    val name = parseIdentifier()
+    consume(Some("=")).get
+    val body = parseExpression()
+    return Declaration(name, body)
+
+
   def parseExpression(initialDepth: Int = 0): Expression =
     var depth = initialDepth
     var left = parseFactor()
@@ -167,6 +189,7 @@ class Parser(tokens: List[Token]):
     // If identifier is followed by ( => it is a function call (or syntax error :D)
     left = left match {
       case left: Identifier if peek().value == "(" => parseFunction(Some(left.name))
+      case left: Identifier if left.name == "var" => parseDeclaration()
       case left if peek().value == "=" => parseEquals(Some(left))
       case _ => left
     }

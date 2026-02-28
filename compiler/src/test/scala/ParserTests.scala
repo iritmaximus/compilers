@@ -560,3 +560,66 @@ class ParserEqualTests extends BaseParserTests {
     assertEquals(result, expected)
   }
 }
+
+
+class ParseWhileDoTests extends BaseParserTests {
+  test("should parse simple while do") {
+    val p = testParser("while true do print()")
+    val result = p.parseExpression()
+    val expected = WhileDo(Identifier("true"), Function("print", List()))
+
+    assertEquals(result, expected)
+  }
+  test("should parse while do with expressions") {
+    val p = testParser("while i+3 <= x do parse_bool(true) != false")
+    val result = p.parseExpression()
+    val expected = WhileDo(
+      BinaryOperator(
+        BinaryOperator(Identifier("i"), "+", Literal(3)),
+        "<=",
+        Identifier("x")
+      ),
+      BinaryOperator(Function("parse_bool", List(Identifier("true"))), "!=", Identifier("false"))
+    )
+
+    assertEquals(result, expected)
+  }
+}
+
+
+class ParserDeclarationTests extends BaseParserTests {
+  test("should parse simple declaration") {
+    val p = testParser("var x = 1")
+    val result = p.parseExpression()
+    val expected = Declaration(Identifier("x"), Literal(1))
+
+    assertEquals(result, expected)
+  }
+  test("should parse declaration with expression body") {
+    val p = testParser("var result = parse(1+x)")
+    val result = p.parseExpression()
+    val expected = Declaration(
+      Identifier("result"),
+      Function("parse", List(BinaryOperator(Literal(1), "+", Identifier("x"))))
+     )
+
+    assertEquals(result, expected)
+  }
+
+  test("should not parse declaration with non-identifier name") {
+    val token = Tokenizer.tokenize("var x>").get(2)
+    // var (1+1) is function...
+    val p = testParser("var x>y = parse(1+x)")
+    interceptMessage[java.lang.Exception](s"Token $token was not expected: =") {
+      val result = p.parseExpression()
+    }
+  }
+  test("should not parse declaration with non-identifier name (function)".fail) {
+    val token = Tokenizer.tokenize("var (").get(1)
+    // var (1+1) is function...
+    val p = testParser("var (1+1) = parse(1+x)")
+    interceptMessage[java.lang.Exception](s"Token $token was not expected: Identifier") {
+      val result = p.parseExpression()
+    }
+  }
+}
