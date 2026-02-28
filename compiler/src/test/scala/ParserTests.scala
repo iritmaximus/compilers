@@ -498,4 +498,38 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(result, expected)
   }
+
+  test("should parse simple assignment") {
+    val p = testParser("a = b")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(Identifier("a"), "=", Identifier("b"))
+
+    assertEquals(result, expected)
+  }
+  test("should parse simple triple assignment right-associatively") {
+    val p = testParser("a = b = c")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      Identifier("a"),
+      "=",
+      BinaryOperator(Identifier("b"), "=", Identifier("c"))
+    )
+
+    assertEquals(result, expected)
+  }
+  test("should parse triple assignment with expressions right-associatively") {
+    val p = testParser("a = b = 1+print_bool(not true)")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      Identifier("a"),
+      "=",
+      BinaryOperator(
+        Identifier("b"),
+        "=",
+        BinaryOperator(Literal(1), "+", Function("print_bool", List(UnaryOperator("not", Identifier("true")))))
+      )
+    )
+
+    assertEquals(result, expected)
+  }
 }

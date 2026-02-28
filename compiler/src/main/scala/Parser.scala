@@ -145,6 +145,21 @@ class Parser(tokens: List[Token]):
     return Function(fnName, args)
 
 
+  def parseEquals(parsedEqualsLeft: Option[Expression], initialDepth: Int = 0): Expression =
+    var depth = initialDepth
+    val left = parsedEqualsLeft.getOrElse(parseFactor())
+    consume(Some("=")).get
+    var right = BinaryOperator(left, "=", parseExpression())
+
+    while
+      peek().value == "="
+    do
+      consume(Some("=")).get
+      right = BinaryOperator(left, "=", right)
+    
+    return right
+
+
   def parseExpression(initialDepth: Int = 0): Expression =
     var depth = initialDepth
     var left = parseFactor()
@@ -152,6 +167,7 @@ class Parser(tokens: List[Token]):
     // If identifier is followed by ( => it is a function call (or syntax error :D)
     left = left match {
       case left: Identifier if peek().value == "(" => parseFunction(Some(left.name))
+      case left if peek().value == "=" => parseEquals(Some(left))
       case _ => left
     }
     
