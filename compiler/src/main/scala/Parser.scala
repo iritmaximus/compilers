@@ -17,6 +17,9 @@ case class Identifier(name: String) extends Expression {
 case class BinaryOperator(left: Expression, operator: String, right: Expression) extends Expression {
   override def toString: String = s"BinaryOperator(l: $left, op: $operator, r: $right)"
 }
+case class UnaryOperator(operator: String, expr: Expression) extends Expression {
+  override def toString: String = s"UnaryOperator($operator: $expr)"
+}
 case class IfThenElse(condition: Expression, body: Expression, elseBody: Option[Expression]) extends Expression {
   override def toString: String = s"If($condition then $body)"
 }
@@ -95,12 +98,21 @@ class Parser(tokens: List[Token]):
     return expression
 
 
+  def parseUnaryOperator(): Expression =
+    // Throw error if consume returns Failure
+    val operator = consume(Some(List("not", "-"))).get.value
+    val expr = parseFactor()
+    return UnaryOperator(operator, expr)
+
+
   def parseFactor(): Expression =
     val token = peek()
     return token.tokenType match {
       case TokenType.IntLiteral => parseIntLiteral()
-      case TokenType.Identifier if token.value =="if" => parseIfThenElse()
+      case TokenType.Identifier if token.value == "if" => parseIfThenElse()
+      case TokenType.Identifier if token.value == "not" => parseUnaryOperator()
       case TokenType.Identifier => parseIdentifier()
+      case TokenType.Operator if token.value == "-" => parseUnaryOperator()
       case TokenType.Punctuation if token.value == "(" => parseParenthisized()
       case _ => throw new Exception(s"Incorrect token type: Expected (, int literal or identifier, got ${token.tokenType} token")
     }
