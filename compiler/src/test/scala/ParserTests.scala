@@ -3,8 +3,7 @@ import compiler.Tokenizer.TokenType as tt
 import compiler.Parser._
 import scala.util.{Try, Failure, Success}
 
-
-class ParserTests extends munit.FunSuite {
+abstract class BaseParserTests extends munit.FunSuite {
   def getTokens(code: String): Option[List[Token]] =
     val tokens = Tokenizer.tokenize(code)
     return tokens match {
@@ -15,9 +14,9 @@ class ParserTests extends munit.FunSuite {
   def testParser(code: String): Parser =
     val tokens = getTokens(code)
     return Parser(tokens.getOrElse(List(Token("error", tt.Error, TokenLocationDebug()))))
+}
 
-
-  // INT LITERAL TESTS
+class ParserIntLiteralTests extends BaseParserTests {
   test("should parse single ints correctly") {
     val p = testParser("7")
     val result = p.parseIntLiteral()
@@ -50,8 +49,9 @@ class ParserTests extends munit.FunSuite {
       val result = p.parseIntLiteral()
     }
   }
+}
 
-  // BINAY OPERATOR TESTS
+class ParserBinaryOperatorTests extends BaseParserTests {
   test("should parse simple sum") {
     val p = testParser("1 + 2")
     val result = p.parseExpression()
@@ -109,9 +109,10 @@ class ParserTests extends munit.FunSuite {
       p.parseExpression()
     }
   }
-    
+}
 
-  // IDENTIFIER
+
+class ParserIdentifierTests extends BaseParserTests {
   test("should parse simple identifier") {
     val p = testParser("parse_int")
     val result = p.parseIdentifier()
@@ -126,8 +127,9 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(List(r1, r2), expected)
   }
+}
 
-  // TERM (there is no parseTerm anymore but oh well)
+class ParserTermTests extends BaseParserTests {
   test("should parse either identifier or int literal (identifier)") {
     val p = testParser("parse_int")
     val result = p.parseExpression()
@@ -150,7 +152,9 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(List(r1, r2), expected)
   }
+}
 
+class ParserAssociativityTests extends BaseParserTests {
   test("should parse multiple operators with correct associativity") {
     val p = testParser("1 + 2 - 40")
     val result = p.parseExpression()
@@ -189,8 +193,8 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(result, expected)
   }
-
-  // IfThenElse
+}
+class ParserIfThenElseTests extends BaseParserTests {
   test("should parse simple if then expression") {
     val p = testParser("if true then 1 + 1")
     val result = p.parseIfThenElse()
@@ -227,8 +231,9 @@ class ParserTests extends munit.FunSuite {
       p.parseIfThenElse()
     }
   }
+}
 
-
+class ParserFunctionTests extends BaseParserTests {
   // Function
   test("should parse simple function without parameters") {
     val p = testParser("print_int()")
@@ -273,7 +278,9 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(result, expected)
   }
+}
 
+class ParserRemainderTests extends BaseParserTests {
   // REMAINDER
   test("should parse simple % remainder operator") {
     val p = testParser("5 % 2")
@@ -290,8 +297,72 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(result, expected)
   }
+}
 
-  // COMPARISONS
+
+class ParserPrecedenceTests extends BaseParserTests {
+  test("should parse not-equal comparison with lower precedence comparisons") {
+    val p = testParser("1 + 2 * 40 <= parse_int(2) != true")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      BinaryOperator(
+        BinaryOperator(Literal(1), "+", BinaryOperator(Literal(2), "*", Literal(40))),
+        "<=",
+        Function("parse_int", List(Literal(2)))
+      ),
+      "!=",
+      Identifier("true")
+    )
+    assertEquals(result, expected)
+  }
+  test("should parse comparisons with `and` and lower precedence operators") {
+    val p = testParser("true and x == y + 1")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      Identifier("true"),
+      "and",
+      BinaryOperator(Identifier("x"), "==", BinaryOperator(Identifier("y"), "+", Literal(1)))
+    )
+
+    assertEquals(result, expected)
+  }
+  test("should parse comparisons with `or` and lower precedence operators") {
+    val p = testParser("true or is_true(x) == (y and 1)")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      Identifier("true"),
+      "or",
+      BinaryOperator(
+        Function("is_true", List(Identifier("x"))),
+        "==",
+        BinaryOperator(Identifier("y"), "and", Literal(1))
+      )
+    )
+
+    assertEquals(result, expected)
+  }
+  test("should parse comparisons with `or` and lower precedence operators (without params)") {
+    val p = testParser("true or is_true(x) == y and 1")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      Identifier("true"),
+      "or",
+      BinaryOperator(
+        BinaryOperator(
+          Function("is_true", List(Identifier("x"))),
+          "==",
+          Identifier("y")
+        ),
+        "and",
+        Literal(1)
+      )
+    )
+
+    assertEquals(result, expected)
+  }
+}
+
+class ParserComparisonTests extends BaseParserTests {
   test("should parse less than (or equals) comparison with simple expressions") {
     val p1 = testParser("1 + 2 * 40 < parse_int")
     val p2 = testParser("1 + 2 * 40 <= parse_int")
@@ -379,20 +450,6 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(result, expected)
   }
-  test("should parse not-equal comparison with lower precedence comparisons") {
-    val p = testParser("1 + 2 * 40 <= parse_int(2) != true")
-    val result = p.parseExpression()
-    val expected = BinaryOperator(
-      BinaryOperator(
-        BinaryOperator(Literal(1), "+", BinaryOperator(Literal(2), "*", Literal(40))),
-        "<=",
-        Function("parse_int", List(Literal(2)))
-      ),
-      "!=",
-      Identifier("true")
-    )
-    assertEquals(result, expected)
-  }
   test("should parse simple comparisons with `and` operator") {
     val p = testParser("true and false")
     val result = p.parseExpression()
@@ -400,17 +457,6 @@ class ParserTests extends munit.FunSuite {
       Identifier("true"),
       "and",
       Identifier("false")
-    )
-
-    assertEquals(result, expected)
-  }
-  test("should parse comparisons with `and` and lower precedence operators") {
-    val p = testParser("true and x == y + 1")
-    val result = p.parseExpression()
-    val expected = BinaryOperator(
-      Identifier("true"),
-      "and",
-      BinaryOperator(Identifier("x"), "==", BinaryOperator(Identifier("y"), "+", Literal(1)))
     )
 
     assertEquals(result, expected)
@@ -426,42 +472,10 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(result, expected)
   }
-  test("should parse comparisons with `or` and lower precedence operators") {
-    val p = testParser("true or is_true(x) == (y and 1)")
-    val result = p.parseExpression()
-    val expected = BinaryOperator(
-      Identifier("true"),
-      "or",
-      BinaryOperator(
-        Function("is_true", List(Identifier("x"))),
-        "==",
-        BinaryOperator(Identifier("y"), "and", Literal(1))
-      )
-    )
 
-    assertEquals(result, expected)
-  }
-  test("should parse comparisons with `or` and lower precedence operators (without params)") {
-    val p = testParser("true or is_true(x) == y and 1")
-    val result = p.parseExpression()
-    val expected = BinaryOperator(
-      Identifier("true"),
-      "or",
-      BinaryOperator(
-        BinaryOperator(
-          Function("is_true", List(Identifier("x"))),
-          "==",
-          Identifier("y")
-        ),
-        "and",
-        Literal(1)
-      )
-    )
+}
 
-    assertEquals(result, expected)
-  }
-
-  // UNARY OPERATOR
+class ParserUnaryOperatorTests extends BaseParserTests {
   test("should parse simple unary `not` operator") {
     val p = testParser("not true")
     val result = p.parseExpression()
@@ -498,7 +512,9 @@ class ParserTests extends munit.FunSuite {
 
     assertEquals(result, expected)
   }
-
+}
+  
+class ParserEqualTests extends BaseParserTests {
   test("should parse simple assignment") {
     val p = testParser("a = b")
     val result = p.parseExpression()
