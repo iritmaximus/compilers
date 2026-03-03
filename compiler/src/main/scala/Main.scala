@@ -7,7 +7,9 @@ import java.net.{ServerSocket, Socket};
 import java.util.stream.Stream
 
 import compiler.Tokenizer._
-import compiler.Parser._
+import compiler.Parser.{Unit => _, _} // Scala also has Unit
+import java.util.Base64
+import java.nio.charset.StandardCharsets
 
 
 @main def main(): Unit =
@@ -16,6 +18,9 @@ import compiler.Parser._
   run_server()
 
 def msg = "I was compiled by Scala 3. :)"
+
+def base64Encode(source: String): String =
+  return Base64.getEncoder.encodeToString(source.getBytes(StandardCharsets.UTF_8))
 
 def run_server(): Unit =
   println("Starting server...")
@@ -40,7 +45,7 @@ def run_server(): Unit =
 
     val response = command match {
       case "ping" => "{}"
-      case "compile" => s"{\"program\": \"${compile(json("code").str)}\"}"
+      case "compile" => s"{\"program\": \"${base64Encode(compile(json("code").str))}\"}"
       case _ => s"{\"error\": \"Incorrect json request body\"}"
     }
 

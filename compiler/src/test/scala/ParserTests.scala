@@ -229,6 +229,21 @@ class ParserIfThenElseTests extends BaseParserTests {
 
     assertEquals(result, expected)
   }
+  test("should parse nested if else") {
+    val p = testParser("if a then b else if c then d else e")
+    val result = p.parseExpression()
+    val expected = IfThenElse(
+      Identifier("a"),
+      Identifier("b"),
+      Some(IfThenElse(
+        Identifier("c"),
+        Identifier("d"),
+        Some(Identifier("e"))
+      ))
+    )
+
+    assertEquals(result, expected)
+  }
   test("should not parse if then with extra identifiers") {
     val token = Tokenizer.tokenize("if true while").get(2)
     val p = testParser("if true while then 1 + 1")
@@ -621,5 +636,65 @@ class ParserDeclarationTests extends BaseParserTests {
     interceptMessage[java.lang.Exception](s"Token $token was not expected: Identifier") {
       val result = p.parseExpression()
     }
+  }
+}
+
+class ParserBlockTests extends BaseParserTests {
+  test("should parse empty block") {
+    val p = testParser("{}")
+    val result = p.parseExpression()
+    val expected = Block(List())
+
+    assertEquals(result, expected)
+  }
+  test("should parse simple block with single expression (no semicolon)") {
+    val p = testParser("{ x }")
+    val result = p.parseExpression()
+    val expected = Block(List(Identifier("x")))
+
+    assertEquals(result, expected)
+  }
+  test("should parse simple block with single expression (semicolon)") {
+    val p = testParser("{ x; }")
+    val result = p.parseExpression()
+    val expected = Block(List(Identifier("x"), Literal(Unit())))
+
+    assertEquals(result, expected)
+  }
+  test("should parse block with single declaration (no semicolon)") {
+    val p = testParser("{ var x = 1 }")
+    val result = p.parseExpression()
+    val expected = Block(List(Declaration(Identifier("x"), Literal(1))))
+
+    assertEquals(result, expected)
+  }
+  test("should parse block with sigle declaration (semicolon)") {
+    val p = testParser("{ var x = 1; }")
+    val result = p.parseExpression()
+    val expected = Block(List(Declaration(Identifier("x"), Literal(1)), Literal(Unit())))
+
+    assertEquals(result, expected)
+  }
+  test("should parse block with multiple declarations") {
+    val p = testParser("{ var x = 1; var y = 2; }")
+    val result = p.parseExpression()
+    val expected = Block(List(
+      Declaration(Identifier("x"), Literal(1)),
+      Declaration(Identifier("y"), Literal(2)),
+      Literal(Unit()
+    )))
+
+    assertEquals(result, expected)
+  }
+  test("should parse with multiple function calls and return value") {
+    val p = testParser("{ f(a); x = y; f(x) }")
+    val result = p.parseExpression()
+    val expected = Block(List(
+      Function("f", List(Identifier("a"))),
+      BinaryOperator(Identifier("x"), "=", Identifier("y")),
+      Function("f", List(Identifier("x")))
+    ))
+
+    assertEquals(result, expected)
   }
 }

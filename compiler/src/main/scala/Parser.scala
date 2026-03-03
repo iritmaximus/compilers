@@ -7,8 +7,12 @@ import compiler.Tokenizer.{Token, TokenType}
 sealed abstract class Expression:
   override def toString() = s"Expression(TODO)"
 
+// Return value of statement without return value
+case class Unit() {
+  override def toString: String = "Unit()"
+}
 
-case class Literal(value: Int | Boolean) extends Expression {
+case class Literal(value: Int | Unit) extends Expression {
   override def toString: String = s"Literal($value)"
 }
 case class Identifier(name: String) extends Expression {
@@ -31,6 +35,9 @@ case class Declaration(name: Identifier, body: Expression) extends Expression {
 }
 case class Function(name: String, arguments: List[Expression]) extends Expression {
   override def toString: String = s"Function($name(${arguments.mkString(", ")}))"
+}
+case class Block(expressions: List[Expression]) extends Expression {
+  override def toString: String = s"Block({\n${expressions.mkString(";\n")}\n})"
 }
 case class Other() extends Expression {
   override def toString: String = s"Other()"
@@ -121,6 +128,7 @@ class Parser(tokens: List[Token]):
       case TokenType.Identifier => parseIdentifier()
       case TokenType.Operator if token.value == "-" => parseUnaryOperator()
       case TokenType.Punctuation if token.value == "(" => parseParenthisized()
+      case TokenType.Punctuation if token.value == "{" => parseBlock()
       case _ => throw new Exception(s"Incorrect token type: Expected (, int literal or identifier, got ${token.tokenType} token")
     }
 
@@ -182,6 +190,28 @@ class Parser(tokens: List[Token]):
     return Declaration(name, body)
 
 
+  def parseBlock(): Expression =
+    consume(Some("{")).get
+    var expressions: List[Expression] = List()
+    var hasSemicolon: Boolean = false
+
+    println(s"Peek value: ${peek().value}")
+    while
+      peek().value != "}"
+    do
+      hasSemicolon = false
+      expressions = expressions ::: List(parseExpression())
+      println(s"Expressions $expressions")
+      if peek().value != "}" then
+        consume(Some(";")).get
+        hasSemicolon = true
+
+    if hasSemicolon then
+      expressions = expressions ::: List(Literal(Unit()))
+
+    consume(Some("}")).get
+    return Block(expressions)
+
   def parseExpression(initialDepth: Int = 0): Expression =
     var depth = initialDepth
     var left = parseFactor()
@@ -212,4 +242,5 @@ class Parser(tokens: List[Token]):
 object Parser:
   def parse(tokens: List[Token]): Try[Expression] =
     val parser = Parser(tokens)
-    return Success(Other())
+    val result = parser.parseExpression()
+    return Success(result)

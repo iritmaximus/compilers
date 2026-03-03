@@ -1,5 +1,1 @@
-.test-gadget
-.*_cache
-*.pyc
-__pycache__
-build
+target
