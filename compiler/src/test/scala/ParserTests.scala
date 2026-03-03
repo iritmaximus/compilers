@@ -770,7 +770,6 @@ class ParserBlockSemicolonTests extends BaseParserTests {
     assertEquals(result, expected)
   }
   test("should parse identifier after IfThen block") {
-    // { if true then { a } b }
     val p = testParser("{ if true then { a } b }")
     val result = p.parseExpression(topLevelOrBlock=true)
     val expected = Block(List(
@@ -785,7 +784,6 @@ class ParserBlockSemicolonTests extends BaseParserTests {
     assertEquals(result, expected)
   }
   test("should parse identifier after IfThen block (with semicolon)") {
-    // { if true then { a } b }
     val p = testParser("{ if true then { a }; b }")
     val result = p.parseExpression(topLevelOrBlock=true)
     val expected = Block(List(
@@ -799,6 +797,54 @@ class ParserBlockSemicolonTests extends BaseParserTests {
 
     assertEquals(result, expected)
   }
+  test("should parse multiple identifiers after IfThen block (with semicolon)") {
+    val p = testParser("{ if true then { a } b; c }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = Block(List(
+      IfThenElse(
+        Identifier("true"),
+        Block(List(Identifier("a"))),
+        None
+      ),
+      Identifier("b"),
+      Identifier("c")
+    ))
+
+    assertEquals(result, expected)
+  }
+  test("should parse identifier after IfThenElse block (with semicolon)") {
+    val p = testParser("{ if true then { a } else { b } c }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = Block(List(
+      IfThenElse(
+        Identifier("true"),
+        Block(List(Identifier("a"))),
+        Some(Block(List(Identifier("b"))))
+      ),
+      Identifier("c")
+    ))
+
+    assertEquals(result, expected)
+  }
+  test("should parse declaration with block values (with semicolon)") {
+    val p = testParser("x = { { f(a) } { b } }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = BinaryOperator(
+      Identifier("x"),
+      "=",
+      Block(List(
+        Block(List(
+          Function("f", List(Identifier("a")))
+        )),
+        Block(List(
+          Identifier("b")
+        ))
+      ))
+    )
+
+    assertEquals(result, expected)
+  }
+
   test("should not parse identifiers inside block") {
     val token = Tokenizer.tokenize("{ a b }").get(2)
     val p = testParser("{ a b }")
@@ -807,7 +853,6 @@ class ParserBlockSemicolonTests extends BaseParserTests {
     }
   }
   test("should not parse two identifiers after block in IfThenElse") {
-    // { if true then { a } b c }
     val token = Tokenizer.tokenize("{ if true then { a } b c }").get(8)
     val p = testParser("{ if true then { a } b c }")
     interceptMessage[java.lang.Exception](s"Token $token was not expected: ;") {
