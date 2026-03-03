@@ -15,7 +15,7 @@ class Position(var line: Int, var column: Int):
   }
 
 class TokenLocation(val start: Position, val end: Position):
-  override def toString: String = s"TokenLoc(S:$start, E:$end)"
+  override def toString: String = s"L(S:$start, E:$end)"
   override def equals(other: Any): Boolean = other match {
     case that: TokenLocation => (that.start == this.start) && (that.end == this.end)
     case that: TokenLocationDebug => true

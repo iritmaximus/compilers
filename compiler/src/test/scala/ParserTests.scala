@@ -744,7 +744,74 @@ class ParserBlockTests extends BaseParserTests {
     val p = testParser("if true then var x = 1")
     interceptMessage[java.lang.Exception]("Declaration found in not toplevel or block") {
       val result = p.parseExpression(topLevelOrBlock=true)
-      println(s"Result: $result")
+    }
+  }
+}
+
+class ParserBlockSemicolonTests extends BaseParserTests {
+  test("should parse two blocks inside a block") {
+    val p = testParser("{ { a } { b } }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = Block(List(
+      Block(List(Identifier("a"))),
+      Block(List(Identifier("b")))
+    ))
+
+    assertEquals(result, expected)
+  }
+  test("should parse two blocks inside a block (with semicolons)") {
+    val p = testParser("{ { a }; { b } }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = Block(List(
+      Block(List(Identifier("a"))),
+      Block(List(Identifier("b")))
+    ))
+
+    assertEquals(result, expected)
+  }
+  test("should parse identifier after IfThen block") {
+    // { if true then { a } b }
+    val p = testParser("{ if true then { a } b }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = Block(List(
+      IfThenElse(
+        Identifier("true"),
+        Block(List(Identifier("a"))),
+        None
+      ),
+      Identifier("b")
+    ))
+
+    assertEquals(result, expected)
+  }
+  test("should parse identifier after IfThen block (with semicolon)") {
+    // { if true then { a } b }
+    val p = testParser("{ if true then { a }; b }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = Block(List(
+      IfThenElse(
+        Identifier("true"),
+        Block(List(Identifier("a"))),
+        None
+      ),
+      Identifier("b")
+    ))
+
+    assertEquals(result, expected)
+  }
+  test("should not parse identifiers inside block") {
+    val token = Tokenizer.tokenize("{ a b }").get(2)
+    val p = testParser("{ a b }")
+    interceptMessage[java.lang.Exception](s"Token $token was not expected: ;") {
+      val result = p.parseExpression(topLevelOrBlock=true)
+    }
+  }
+  test("should not parse two identifiers after block in IfThenElse") {
+    // { if true then { a } b c }
+    val token = Tokenizer.tokenize("{ if true then { a } b c }").get(8)
+    val p = testParser("{ if true then { a } b c }")
+    interceptMessage[java.lang.Exception](s"Token $token was not expected: ;") {
+      val result = p.parseExpression(topLevelOrBlock=true)
     }
   }
 }

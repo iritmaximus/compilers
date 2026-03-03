@@ -60,6 +60,8 @@ class Parser(tokens: List[Token]):
   def peek(): Token =
     return if pos < tokens.length then tokens(pos) else Token("", TokenType.End, tokens.last.location)
 
+  def previous(): Token =
+    return if pos-1 < 0 then tokens(0) else tokens(pos-1)
 
   def consume(expected: Option[TokenType | String | List[String]] = None): Try[Token] =
     val token = peek()
@@ -193,18 +195,22 @@ class Parser(tokens: List[Token]):
   def parseBlock(): Expression =
     consume(Some("{")).get
     var expressions: List[Expression] = List()
-    var hasSemicolon: Boolean = false
+    var endsInSemicolon: Boolean = false
 
     while
       peek().value != "}"
     do
-      hasSemicolon = false
+      endsInSemicolon = false
       expressions = expressions ::: List(parseExpression(topLevelOrBlock=true))
-      if peek().value != "}" then
-        consume(Some(";")).get
-        hasSemicolon = true
 
-    if hasSemicolon then
+      if peek().value != "}" && previous().value != "}" && previous().value != ";" then
+        consume(Some(";")).get
+        endsInSemicolon = true
+
+      if previous().value == "}" then
+        if peek().value == ";" then consume(Some(";")).get
+
+    if endsInSemicolon then
       expressions = expressions ::: List(Literal(Unit()))
 
     consume(Some("}")).get
