@@ -605,14 +605,14 @@ class ParseWhileDoTests extends BaseParserTests {
 class ParserDeclarationTests extends BaseParserTests {
   test("should parse simple declaration") {
     val p = testParser("var x = 1")
-    val result = p.parseExpression()
+    val result = p.parseExpression(topLevelOrBlock=true)
     val expected = Declaration(Identifier("x"), Literal(1))
 
     assertEquals(result, expected)
   }
   test("should parse declaration with expression body") {
     val p = testParser("var result = parse(1+x)")
-    val result = p.parseExpression()
+    val result = p.parseExpression(topLevelOrBlock=true)
     val expected = Declaration(
       Identifier("result"),
       Function("parse", List(BinaryOperator(Literal(1), "+", Identifier("x"))))
@@ -626,7 +626,7 @@ class ParserDeclarationTests extends BaseParserTests {
     // var (1+1) is function...
     val p = testParser("var x>y = parse(1+x)")
     interceptMessage[java.lang.Exception](s"Token $token was not expected: =") {
-      val result = p.parseExpression()
+      val result = p.parseExpression(topLevelOrBlock=true)
     }
   }
   test("should not parse declaration with non-identifier name (function)".fail) {
@@ -634,7 +634,7 @@ class ParserDeclarationTests extends BaseParserTests {
     // var (1+1) is function...
     val p = testParser("var (1+1) = parse(1+x)")
     interceptMessage[java.lang.Exception](s"Token $token was not expected: Identifier") {
-      val result = p.parseExpression()
+      val result = p.parseExpression(topLevelOrBlock=true)
     }
   }
 }
@@ -688,7 +688,7 @@ class ParserBlockTests extends BaseParserTests {
   }
   test("should parse with multiple function calls and return value") {
     val p = testParser("{ f(a); x = y; f(x) }")
-    val result = p.parseExpression()
+    val result = p.parseExpression(topLevelOrBlock=true)
     val expected = Block(List(
       Function("f", List(Identifier("a"))),
       BinaryOperator(Identifier("x"), "=", Identifier("y")),
@@ -696,5 +696,55 @@ class ParserBlockTests extends BaseParserTests {
     ))
 
     assertEquals(result, expected)
+  }
+  test("should parse if then else with blocks") {
+    val p = testParser("if true then { var x = 1; print_int(x); } else { var x = 2; }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = IfThenElse(
+      Identifier("true"),
+      Block(List(
+        Declaration(Identifier("x"), Literal(1)),
+        Function("print_int", List(Identifier("x"))),
+        Literal(Unit())
+      )),
+      Some(Block(List(
+        Declaration(Identifier("x"), Literal(2)),
+        Literal(Unit())))
+      )
+    )
+
+    assertEquals(result, expected)
+  }
+  test("should parse assignment with block as right side") {
+    val p = testParser("x = { f(a); b }")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = BinaryOperator(
+      Identifier("x"),
+      "=",
+      Block(List(
+        Function("f", List(Identifier("a"))),
+        Identifier("b")
+      ))
+    )
+    assertEquals(result, expected)
+  }
+  test("should allow trailing semicolon after block") {
+    val p = testParser("{ f(a); };")
+    val result = p.parseExpression(topLevelOrBlock=true)
+    val expected = Block(List(
+      Function("f", List(Identifier("a"))),
+      Literal(Unit())
+    ))
+      
+    assertEquals(result, expected)
+  }
+
+  test("should fail to parse if trying to declare variable outside block and not top-level") {
+    val token = Tokenizer.tokenize("if true then var").get(3)
+    val p = testParser("if true then var x = 1")
+    interceptMessage[java.lang.Exception]("Declaration found in not toplevel or block") {
+      val result = p.parseExpression(topLevelOrBlock=true)
+      println(s"Result: $result")
+    }
   }
 }

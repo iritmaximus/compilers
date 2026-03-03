@@ -186,7 +186,7 @@ class Parser(tokens: List[Token]):
   def parseDeclaration(): Expression =
     val name = parseIdentifier()
     consume(Some("=")).get
-    val body = parseExpression()
+    val body = parseExpression(topLevelOrBlock=true)
     return Declaration(name, body)
 
 
@@ -195,13 +195,11 @@ class Parser(tokens: List[Token]):
     var expressions: List[Expression] = List()
     var hasSemicolon: Boolean = false
 
-    println(s"Peek value: ${peek().value}")
     while
       peek().value != "}"
     do
       hasSemicolon = false
-      expressions = expressions ::: List(parseExpression())
-      println(s"Expressions $expressions")
+      expressions = expressions ::: List(parseExpression(topLevelOrBlock=true))
       if peek().value != "}" then
         consume(Some(";")).get
         hasSemicolon = true
@@ -210,16 +208,20 @@ class Parser(tokens: List[Token]):
       expressions = expressions ::: List(Literal(Unit()))
 
     consume(Some("}")).get
+    // Get rid of hanging semicolons if true then { *something* }; <- !
+    if peek().value == ";" then consume(Some(";")).get
     return Block(expressions)
 
-  def parseExpression(initialDepth: Int = 0): Expression =
+  def parseExpression(initialDepth: Int = 0, topLevelOrBlock: Boolean = false): Expression =
     var depth = initialDepth
     var left = parseFactor()
 
-    // If identifier is followed by ( => it is a function call (or syntax error :D)
     left = left match {
+      // If identifier is followed by ( => it is a function call (or syntax error :D)
       case left: Identifier if peek().value == "(" => parseFunction(Some(left.name))
-      case left: Identifier if left.name == "var" => parseDeclaration()
+      // Allow declarations in only top level or blocks and fail if found elsewhere
+      case left: Identifier if left.name == "var" && topLevelOrBlock => parseDeclaration()
+      case left: Identifier if left.name == "var" && !topLevelOrBlock => throw new Exception("Declaration found in not toplevel or block")
       case left if peek().value == "=" => parseEquals(Some(left))
       case _ => left
     }
