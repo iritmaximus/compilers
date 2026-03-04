@@ -33,7 +33,7 @@ case class WhileDo(condition: Expression, body: Expression) extends Expression {
 case class Declaration(name: Identifier, body: Expression) extends Expression {
   override def toString: String = s"Var($name = $body)"
 }
-case class Function(name: String, arguments: List[Expression]) extends Expression {
+case class Function(name: Identifier, arguments: List[Expression]) extends Expression {
   override def toString: String = s"Function($name(${arguments.mkString(", ")}))"
 }
 case class Block(expressions: List[Expression]) extends Expression {
@@ -156,8 +156,8 @@ class Parser(tokens: List[Token]):
     return WhileDo(condition, body)
 
 
-  def parseFunction(parsedFnName: Option[String] = None): Expression =
-    val fnName = parsedFnName.getOrElse(consume(Some(TokenType.Identifier)).get.value)
+  def parseFunction(parsedFnName: Option[Identifier] = None): Expression =
+    val fnName = parsedFnName.getOrElse(Identifier(consume(Some(TokenType.Identifier)).get.value))
     consume(Some("(")).get
     var args: List[Expression] = List()
     while
@@ -224,7 +224,7 @@ class Parser(tokens: List[Token]):
 
     left = left match {
       // If identifier is followed by ( => it is a function call (or syntax error :D)
-      case left: Identifier if peek().value == "(" => parseFunction(Some(left.name))
+      case left: Identifier if peek().value == "(" => parseFunction(Some(Identifier(left.name)))
       // Allow declarations in only top level or blocks and fail if found elsewhere
       case left: Identifier if left.name == "var" && topLevelOrBlock => parseDeclaration()
       case left: Identifier if left.name == "var" && !topLevelOrBlock => throw new Exception("Declaration found in not toplevel or block")

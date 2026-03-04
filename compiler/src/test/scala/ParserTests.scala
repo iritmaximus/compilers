@@ -260,28 +260,28 @@ class ParserFunctionTests extends BaseParserTests {
   test("should parse simple function without parameters") {
     val p = testParser("print_int()")
     val result = p.parseFunction()
-    val expected = Function("print_int", List())
+    val expected = Function(Identifier("print_int"), List())
 
     assertEquals(result, expected)
   }
   test("should parse simple function with single parameter") {
     val p = testParser("print_int(1)")
     val result = p.parseFunction()
-    val expected = Function("print_int", List(Literal(1)))
+    val expected = Function(Identifier("print_int"), List(Literal(1)))
 
     assertEquals(result, expected)
   }
   test("should parse function with multiple parameters") {
     val p = testParser("print_int(1, a, BigInt)")
     val result = p.parseFunction()
-    val expected = Function("print_int", List(Literal(1), Identifier("a"), Identifier("BigInt")))
+    val expected = Function(Identifier("print_int"), List(Literal(1), Identifier("a"), Identifier("BigInt")))
 
     assertEquals(result, expected)
   }
   test("should parse function with multiple complex parameters") {
     val p = testParser("print_int(x+y, 1 * (xy+z), parse_int)")
     val result = p.parseFunction()
-    val expected = Function("print_int", List(
+    val expected = Function(Identifier("print_int"), List(
       BinaryOperator(Identifier("x"), "+", Identifier("y")),
       BinaryOperator(Literal(1), "*", BinaryOperator(Identifier("xy"), "+", Identifier("z"))),
       Identifier("parse_int")
@@ -292,10 +292,10 @@ class ParserFunctionTests extends BaseParserTests {
   test("should parse function with multiple complex parameters + incl. functions") {
     val p = testParser("print_int(x+y, 1 * (xy+z), parse_int())")
     val result = p.parseFunction()
-    val expected = Function("print_int", List(
+    val expected = Function(Identifier("print_int"), List(
       BinaryOperator(Identifier("x"), "+", Identifier("y")),
       BinaryOperator(Literal(1), "*", BinaryOperator(Identifier("xy"), "+", Identifier("z"))),
-      Function("parse_int", List())
+      Function(Identifier("parse_int"), List())
     ))
 
     assertEquals(result, expected)
@@ -331,7 +331,7 @@ class ParserPrecedenceTests extends BaseParserTests {
       BinaryOperator(
         BinaryOperator(Literal(1), "+", BinaryOperator(Literal(2), "*", Literal(40))),
         "<=",
-        Function("parse_int", List(Literal(2)))
+        Function(Identifier("parse_int"), List(Literal(2)))
       ),
       "!=",
       Identifier("true")
@@ -356,7 +356,7 @@ class ParserPrecedenceTests extends BaseParserTests {
       Identifier("true"),
       "or",
       BinaryOperator(
-        Function("is_true", List(Identifier("x"))),
+        Function(Identifier("is_true"), List(Identifier("x"))),
         "==",
         BinaryOperator(Identifier("y"), "and", Literal(1))
       )
@@ -372,7 +372,7 @@ class ParserPrecedenceTests extends BaseParserTests {
       "or",
       BinaryOperator(
         BinaryOperator(
-          Function("is_true", List(Identifier("x"))),
+          Function(Identifier("is_true"), List(Identifier("x"))),
           "==",
           Identifier("y")
         ),
@@ -469,7 +469,7 @@ class ParserComparisonTests extends BaseParserTests {
     val expected = BinaryOperator(
       BinaryOperator(Literal(1), "+", BinaryOperator(Literal(2), "*", Literal(40))),
       "==",
-      Function("parse_int", List(Literal(2)))
+      Function(Identifier("parse_int"), List(Literal(2)))
     )
 
     assertEquals(result, expected)
@@ -520,7 +520,7 @@ class ParserUnaryOperatorTests extends BaseParserTests {
     val result = p.parseExpression()
     val expected = IfThenElse(
       UnaryOperator("not", Identifier("true")),
-      Function("print_int", List(Identifier("x"))),
+      Function(Identifier("print_int"), List(Identifier("x"))),
       None
     )
 
@@ -531,7 +531,7 @@ class ParserUnaryOperatorTests extends BaseParserTests {
     val result = p.parseExpression()
     val expected = IfThenElse(
       UnaryOperator("-", Identifier("true")),
-      Function("print_int", List(Identifier("x"))),
+      Function(Identifier("print_int"), List(Identifier("x"))),
       None
     )
 
@@ -568,7 +568,7 @@ class ParserEqualTests extends BaseParserTests {
       BinaryOperator(
         Identifier("b"),
         "=",
-        BinaryOperator(Literal(1), "+", Function("print_bool", List(UnaryOperator("not", Identifier("true")))))
+        BinaryOperator(Literal(1), "+", Function(Identifier("print_bool"), List(UnaryOperator("not", Identifier("true")))))
       )
     )
 
@@ -581,7 +581,7 @@ class ParseWhileDoTests extends BaseParserTests {
   test("should parse simple while do") {
     val p = testParser("while true do print()")
     val result = p.parseExpression()
-    val expected = WhileDo(Identifier("true"), Function("print", List()))
+    val expected = WhileDo(Identifier("true"), Function(Identifier("print"), List()))
 
     assertEquals(result, expected)
   }
@@ -594,7 +594,7 @@ class ParseWhileDoTests extends BaseParserTests {
         "<=",
         Identifier("x")
       ),
-      BinaryOperator(Function("parse_bool", List(Identifier("true"))), "!=", Identifier("false"))
+      BinaryOperator(Function(Identifier("parse_bool"), List(Identifier("true"))), "!=", Identifier("false"))
     )
 
     assertEquals(result, expected)
@@ -615,7 +615,7 @@ class ParserDeclarationTests extends BaseParserTests {
     val result = p.parseExpression(topLevelOrBlock=true)
     val expected = Declaration(
       Identifier("result"),
-      Function("parse", List(BinaryOperator(Literal(1), "+", Identifier("x"))))
+      Function(Identifier("parse"), List(BinaryOperator(Literal(1), "+", Identifier("x"))))
      )
 
     assertEquals(result, expected)
@@ -690,9 +690,9 @@ class ParserBlockTests extends BaseParserTests {
     val p = testParser("{ f(a); x = y; f(x) }")
     val result = p.parseExpression(topLevelOrBlock=true)
     val expected = Block(List(
-      Function("f", List(Identifier("a"))),
+      Function(Identifier("f"), List(Identifier("a"))),
       BinaryOperator(Identifier("x"), "=", Identifier("y")),
-      Function("f", List(Identifier("x")))
+      Function(Identifier("f"), List(Identifier("x")))
     ))
 
     assertEquals(result, expected)
@@ -704,7 +704,7 @@ class ParserBlockTests extends BaseParserTests {
       Identifier("true"),
       Block(List(
         Declaration(Identifier("x"), Literal(1)),
-        Function("print_int", List(Identifier("x"))),
+        Function(Identifier("print_int"), List(Identifier("x"))),
         Literal(Unit())
       )),
       Some(Block(List(
@@ -722,7 +722,7 @@ class ParserBlockTests extends BaseParserTests {
       Identifier("x"),
       "=",
       Block(List(
-        Function("f", List(Identifier("a"))),
+        Function(Identifier("f"), List(Identifier("a"))),
         Identifier("b")
       ))
     )
@@ -732,7 +732,7 @@ class ParserBlockTests extends BaseParserTests {
     val p = testParser("{ f(a); };")
     val result = p.parseExpression(topLevelOrBlock=true)
     val expected = Block(List(
-      Function("f", List(Identifier("a"))),
+      Function(Identifier("f"), List(Identifier("a"))),
       Literal(Unit())
     ))
       
@@ -834,7 +834,7 @@ class ParserBlockSemicolonTests extends BaseParserTests {
       "=",
       Block(List(
         Block(List(
-          Function("f", List(Identifier("a")))
+          Function(Identifier("f"), List(Identifier("a")))
         )),
         Block(List(
           Identifier("b")
