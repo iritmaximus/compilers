@@ -218,6 +218,7 @@ class Parser(tokens: List[Token]):
     if peek().value == ";" then consume(Some(";")).get
     return Block(expressions)
 
+
   def parseExpression(initialDepth: Int = 0, topLevelOrBlock: Boolean = false): Expression =
     var depth = initialDepth
     var left = parseFactor()

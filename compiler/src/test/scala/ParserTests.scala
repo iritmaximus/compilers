@@ -537,6 +537,17 @@ class ParserUnaryOperatorTests extends BaseParserTests {
 
     assertEquals(result, expected)
   }
+  test("should parse unary `-` operator in BinaryOperator") {
+    val p = testParser("1--2")
+    val result = p.parseExpression()
+    val expected = BinaryOperator(
+      Literal(1),
+      "-",
+      UnaryOperator("-", Literal(2))
+    )
+
+    assertEquals(result, expected)
+  }
 }
   
 
