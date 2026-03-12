@@ -10,8 +10,30 @@ case class CBool() extends CType
 case class CUnit() extends CType
 case class CNone() extends CType
 
+class CSymbol(val name: Identifier, val value: Expression, val valType: CType) {
+  override def equals(other: Any): Boolean = other match {
+    case that: CSymbol => if (that.name.name == this.name.name && that.value == this.value && that.valType == this.valType) then true else false
+    case _ => false
+  }
+  override def toString: String =
+    s"CSymbol($name, $value, $valType)"
+}
+
+
+class SymbolTable(var symbols: List[CSymbol], var childTable: Option[SymbolTable]) {
+  override def equals(other: Any): Boolean = other match {
+    case that: SymbolTable => if that.symbols.zip(this.symbols).forall((thatSymbol, thisSymbol) => thatSymbol == thisSymbol) then true else false
+    case _ => false
+  }
+}
+
 
 class TypeChecker() {
+  private var symTab = SymbolTable(List(), None)
+
+  def getSymTable(): SymbolTable =
+    return symTab
+
   def typecheck(ast: Expression): CType =
     return ast match {
       case that: Literal => {
@@ -71,6 +93,17 @@ class TypeChecker() {
           case conditionType => throw new Exception(s"WhileDo condition not bool: $conditionType")
         }
       }
+
+      case that: Declaration => {
+        symTab.symbols ::: List(new CSymbol(that.name, that.body, typecheck(that.body)))
+        CUnit() // var x = 1 shouldn't have a type (x can and will have a type)
+      }
+
+      case that: Block => {
+        // that.expressions.map(expr => typecheck(expr))
+        return CUnit()
+    }
+
       // case _ => throw new Exception("NOT IMPLEMENTED")
     }
 }
